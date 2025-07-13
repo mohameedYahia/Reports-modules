@@ -12,15 +12,6 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Custom styles for radial progress bar */
-        .radial-progress-bar svg {
-            transform: rotate(-90deg);
-        }
-        .radial-progress-bar circle {
-            transition: stroke-dashoffset 0.35s;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
         /* Style for filter dropdowns */
         .filter-dropdown {
             padding: 8px 12px;
@@ -42,6 +33,34 @@
         .status-green { background-color: #e6fffa; } /* bg-green-50 */
         .status-yellow { background-color: #fef9c3; } /* bg-yellow-100 */
         .status-red { background-color: #fee2e2; } /* bg-red-100 */
+        
+        /* Ensure KPI cards have a consistent height and content is aligned */
+        .kpi-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        /* Professional styling for chart cards */
+        .chart-card {
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem; /* p-6 */
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* rounded-xl */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* shadow-lg */
+        }
+        .chart-header {
+            margin-bottom: 1rem; /* mb-4 */
+        }
+        .chart-container {
+            position: relative;
+            flex-grow: 1; /* Allow container to fill space */
+            min-height: 320px; /* Ensure a good minimum height for charts */
+        }
+
     </style>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
@@ -91,6 +110,10 @@
             </nav>
             <!-- Export and Alerts Section -->
             <div class="mt-auto pt-6 border-t border-gray-700">
+                <h3 class="text-lg font-semibold mb-4">تنبيهات هامة</h3>
+                <div id="alert-message" class="hidden bg-red-500 text-white text-sm p-3 rounded-md animate-pulse mb-4">
+                    <!-- Alert message will be inserted here -->
+                </div>
                 <h3 class="text-lg font-semibold mb-4">خيارات إضافية</h3>
                 <button id="export-pdf-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 mb-3">
                     تصدير التقرير (PDF)
@@ -98,9 +121,6 @@
                 <button id="export-excel-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 mb-3">
                     تصدير البيانات (Excel)
                 </button>
-                <div id="alert-message" class="hidden bg-red-500 text-white text-sm p-3 rounded-md animate-pulse">
-                    <!-- Alert message will be inserted here -->
-                </div>
                 <p class="text-xs text-gray-400 mt-4">
                     * التحديث الفوري للبيانات محاكى كل 10 ثوانٍ.
                 </p>
@@ -506,7 +526,6 @@
         const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#8A2BE2', '#DEB887'];
 
         var activeModule = 'finance';
-        var alertMessage = '';
         var chartInstances = {}; // To store Chart.js instances for destruction/re-rendering
 
         // Utility function to format currency - Egyptian Pound
@@ -514,148 +533,101 @@
 
         // Utility function to simulate AI insights with solutions and percentages
         const getAIInsights = async (module) => {
-            // In a real application, this would call the Gemini API
-            // For demonstration, we return predefined insights based on the module.
+            // In a real application, this would call an AI API.
+            // For demonstration, we return predefined insights with solutions.
             switch (module) {
                 case 'finance':
-                    var insights = '';
+                    let insights = '';
                     const chap1 = mockData.finance.chapters.find(c => c.id === 'chap1');
-                    const chap2 = mockData.finance.chapters.find(c => c.id === 'chap2'); // Assuming chap2 for 'المشتريات' for the alert
-                    const chap6 = mockData.finance.chapters.find(c => c.id === 'chap6');
-                    const chap4 = mockData.finance.chapters.find(c => c.id === 'chap4');
-
+                    const chap2 = mockData.finance.chapters.find(c => c.id === 'chap2');
+                    
                     if (chap1.actualSpent / chap1.originalAllocation > 0.95) {
-                        insights += `<p class="mb-2"><strong>تنبيه (الباب الأول - الأجور):</strong> تجاوز الإنفاق على الأجور 95% من الاعتماد الأصلي (${(chap1.actualSpent / chap1.originalAllocation * 100).toFixed(1)}%). يوصى بمراجعة الموازنة المتبقية لهذا الباب لتجنب أي عجز محتمل.</p>`;
+                        insights += `<div class="mb-3"><strong class="text-red-600">تنبيه (الباب الأول - الأجور):</strong> تجاوز الإنفاق 95%.<ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> مراجعة الموازنة المتبقية فورًا والنظر في إعادة تخصيص الأموال من أبواب ذات إنفاق أقل لتجنب العجز.</li></ul></div>`;
                     }
                     if (chap2.actualSpent / chap2.originalAllocation < 0.75) {
-                        insights += `<p class="mb-2"><strong>مؤشر (الباب الثاني - شراء السلع والخدمات):</strong> نسبة تنفيذ المشتريات أقل من 75% (${(chap2.actualSpent / chap2.originalAllocation * 100).toFixed(1)}%). قد يشير هذا إلى تأخر في عمليات الشراء. يوصى بتحليل أسباب التأخير ووضع خطط لتسريع التنفيذ.</p>`;
+                        insights += `<div class="mb-3"><strong class="text-yellow-600">مؤشر (الباب الثاني - شراء السلع):</strong> نسبة تنفيذ المشتريات منخفضة.<ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> تحليل أسباب التأخير في عمليات الشراء ووضع خطط لتسريع التنفيذ، مثل مراجعة إجراءات التعاقد.</li></ul></div>`;
                     }
-                    if (chap4.actualSpent / chap4.originalAllocation >= 1) {
-                        insights += `<p class="mb-2"><strong>مؤشر (الباب الرابع - الدعم):</strong> تم صرف دعم المواطن بالكامل (${(chap4.actualSpent / chap4.originalAllocation * 100).toFixed(1)}%). هذا يعكس التزامًا كاملاً ببنود الدعم المخصصة.</p>`;
-                    }
-
                     if (!insights) {
-                        insights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على البيانات الحالية.</p>';
+                        insights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً.</p>';
                     }
                     return insights;
+
                 case 'strategyProjects':
-                    var projInsights = '';
-                    const projects = mockData.strategyProjects.projects;
-                    const totalProjects = projects.length;
-                    const avgCompletion = projects.reduce((sum, p) => sum + p.completionPercentage, 0) / totalProjects;
-                    const projectsOver80 = projects.filter(p => p.completionPercentage >= 80).length;
-                    const totalObstacles = projects.reduce((sum, p) => sum + p.obstaclesCount, 0);
-                    const lowestCompletionProject = projects.reduce((prev, current) =>
-                        (prev.completionPercentage < current.completionPercentage) ? prev : current
-                    );
-
-                    if (lowestCompletionProject.completionPercentage < 60 || lowestCompletionProject.obstaclesCount > 0) {
-                        projInsights += `<p class="mb-2"><strong>تنبيه (أقل مشروع تنفيذًا):</strong> المشروع "${lowestCompletionProject.name}" لديه نسبة إنجاز منخفضة (${lowestCompletionProject.completionPercentage}%) وبه ${lowestCompletionProject.obstaclesCount} معوقات. يتطلب مراجعة فورية.</p>`;
+                    let projInsights = '';
+                    const lowCompletionProject = mockData.strategyProjects.projects.find(p => p.completionPercentage < 50 && p.obstaclesCount > 0);
+                    if (lowCompletionProject) {
+                        projInsights += `<div class="mb-3"><strong class="text-red-600">تنبيه (مشروع متعثر):</strong> مشروع "${lowCompletionProject.name}" لديه نسبة إنجاز منخفضة (${lowCompletionProject.completionPercentage}%) ومعوقات. <ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> عقد اجتماع عاجل مع فريق المشروع لمناقشة المعوقات ووضع خطة عمل تصحيحية.</li></ul></div>`;
                     }
-                    if (projectsOver80 / totalProjects > 0.5) {
-                        projInsights += `<p class="mb-2"><strong>مؤشر إيجابي:</strong> ${projectsOver80} مشروعًا (${(projectsOver80 / totalProjects * 100).toFixed(1)}%) تجاوزت نسبة إنجاز 80%، مما يدل على تقدم جيد.</p>`;
+                    const highBudgetVarianceProject = mockData.strategyProjects.projects.find(p => (p.actualSpent / p.budgetApproved) > 1.1);
+                     if (highBudgetVarianceProject) {
+                        projInsights += `<div class="mb-3"><strong class="text-yellow-600">مؤشر (تجاوز الميزانية):</strong> مشروع "${highBudgetVarianceProject.name}" تجاوز الإنفاق المخطط له. <ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> مراجعة المصروفات وتحديد أسباب التجاوز.</li></ul></div>`;
                     }
-                    if (totalObstacles > totalProjects * 0.5) {
-                        projInsights += `<p class="mb-2"><strong>تنبيه (المعوقات):</strong> إجمالي المعوقات المسجلة (${totalObstacles}) مرتفع. يوصى بتحليل الأسباب الجذرية للمعوقات ووضع خطة لمعالجتها.</p>`;
-                    }
-
                     if (!projInsights) {
-                        projInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على بيانات المشاريع.</p>';
+                        projInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً.</p>';
                     }
                     return projInsights;
+
                 case 'inventoryWarehousing':
-                    var invInsights = '';
-                    const warehouses = mockData.inventoryWarehousing.warehouses;
-                    const stagnantAlertThreshold = 10; // More than 10 stagnant items
-
-                    warehouses.forEach(wh => {
-                        if (wh.stagnantItemsCount > stagnantAlertThreshold) {
-                            invInsights += `<p class="mb-2"><strong>تنبيه (المخزن ${wh.name}):</strong> يحتوي على ${wh.stagnantItemsCount} صنف راكد، وهو يتجاوز الحد المسموح به (${stagnantAlertThreshold}). يوصى بمراجعة هذه الأصناف.</p>`;
-                        }
-                        if (wh.turnoverRate < 0.50) { // Less than 50% turnover
-                            invInsights += `<p class="mb-2"><strong>مؤشر (المخزن ${wh.name}):</strong> نسبة دوران المخزون منخفضة (${(wh.turnoverRate * 100).toFixed(1)}%). قد يشير إلى مخزون بطيء الحركة.</p>`;
-                        }
-                        if (!wh.isInventoried) {
-                            invInsights += `<p class="mb-2"><strong>تنبيه (المخزن ${wh.name}):</strong> لم يتم جرد المخزن مؤخرًا. يوصى بإجراء جرد فعلي في أقرب وقت.</p>`;
-                        }
-                    });
-
+                    let invInsights = '';
+                    const stagnantWarehouse = mockData.inventoryWarehousing.warehouses.find(wh => wh.stagnantItemsCount > 15 || wh.turnoverRate < 0.5);
+                    if (stagnantWarehouse) {
+                        invInsights += `<div class="mb-3"><strong class="text-red-600">تنبيه (مخزون راكد):</strong> مخزن "${stagnantWarehouse.name}" يعاني من ركود المخزون. <ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> مراجعة الأصناف الراكدة، والنظر في عمل عروض ترويجية أو نقلها لمخازن أخرى ذات طلب أعلى.</li></ul></div>`;
+                    }
+                     const expiredWarehouse = mockData.inventoryWarehousing.warehouses.find(wh => wh.expiredItemsCount > 10);
+                     if (expiredWarehouse) {
+                        invInsights += `<div class="mb-3"><strong class="text-yellow-600">مؤشر (أصناف منتهية الصلاحية):</strong> عدد الأصناف المنتهية في مخزن "${expiredWarehouse.name}" مرتفع. <ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> تحسين نظام إدارة المخزون (FIFO) ومراجعة تواريخ الصلاحية بانتظام.</li></ul></div>`;
+                    }
                     if (!invInsights) {
-                        invInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على بيانات المخازن.</p>';
+                        invInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً.</p>';
                     }
                     return invInsights;
+
                 case 'procurement':
-                     const operations = mockData.procurement.operations;
-                     const totalOps = operations.length;
-                     const stalledOps = operations.filter(op => op.objections !== '').length;
-                     const pendingPaymentOps = operations.filter(op => op.paymentStatus === 'معلق').length;
-                     let procInsights = '';
+                    let procInsights = '';
+                    const stalledOp = mockData.procurement.operations.find(op => op.objections !== '');
+                    if (stalledOp) {
+                        procInsights += `<div class="mb-3"><strong class="text-red-600">تنبيه (عملية متعثرة):</strong> العملية "${stalledOp.operationNumber}" متوقفة بسبب اعتراضات. <ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> مراجعة الاعتراضات بشكل عاجل مع الإدارات المعنية والموردين للوصول إلى حل.</li></ul></div>`;
+                    }
+                    const pendingPaymentOpsCount = mockData.procurement.operations.filter(op => op.paymentStatus === 'معلق').length;
+                    if (pendingPaymentOpsCount > 3) {
+                         procInsights += `<div class="mb-3"><strong class="text-yellow-600">مؤشر (دفعات معلقة):</strong> يوجد عدد كبير من الدفعات المعلقة. <ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> مراجعة دورة الدفع وتسريع الإجراءات لتجنب التأثير على علاقات الموردين.</li></ul></div>`;
+                    }
+                    if (!procInsights) {
+                        procInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً.</p>';
+                    }
+                    return procInsights;
 
-                     if (stalledOps > 0) {
-                         procInsights += `<p class="mb-2"><strong>تنبيه (عمليات متعثرة):</strong> يوجد ${stalledOps} عملية متوقفة بسبب اعتراضات. يوصى بمراجعة هذه العمليات بشكل عاجل لتجنب التأخير في المشاريع المرتبطة بها.</p>`;
-                     }
-                     if (pendingPaymentOps / totalOps > 0.25) {
-                         procInsights += `<p class="mb-2"><strong>مؤشر (دفعات معلقة):</strong> أكثر من 25% من العمليات لديها دفعات معلقة. قد يؤثر هذا على علاقات الموردين. يوصى بمراجعة دورة الدفع.</p>`;
-                     }
-                     const avgDiff = operations.filter(op => op.awardedValue > 0).reduce((sum, op) => sum + (op.estimatedValue - op.awardedValue), 0) / operations.filter(op => op.awardedValue > 0).length;
-                     if (avgDiff > 0) {
-                         procInsights += `<p class="mb-2"><strong>مؤشر إيجابي (التوفير):</strong> متوسط الفرق بين القيمة التقديرية والترسية يمثل توفيرًا يقدر بـ ${formatCurrency(avgDiff)} لكل عملية. هذا يعكس كفاءة في التفاوض.</p>`;
-                     }
-
-                     if (!procInsights) {
-                         procInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على بيانات التعاقدات.</p>';
-                     }
-                     return procInsights;
-                case 'fleetTransport':
-                    return `
-                        <p class="mb-2"><strong>تحسين كفاءة الأسطول:</strong> نسبة المركبات المعطلة تبلغ <strong>11%</strong> من إجمالي الأسطول وتتطلب اهتماماً. يوصى بزيادة عمليات الصيانة الوقائية لتقليل الأعطال المفاجئة بنسبة <strong>20%</strong>.</p>
-                        <p class="mb-2"><strong>تنبؤ باستهلاك الوقود:</strong> من المتوقع أن يرتفع استهلاك الوقود بنسبة <strong>8%</strong> في الأشهر القادمة بسبب زيادة العمليات. يوصى بمراجعة سياسات التزود بالوقود.</p>
-                        <p><strong>تحليل تكلفة التشغيل:</strong> تكلفة تشغيل بعض المركبات أعلى من المتوسط بنسبة <strong>10-15%</strong>. يوصى بتحليل مفصل لأسباب هذا الارتفاع واتخاذ إجراءات تصحيحية.</p>
-                        <p class="mt-2"><strong>حلول مقترحة:</strong></p>
-                        <ul class="list-disc list-inside">
-                          <li>تطبيق نظام تتبع المركبات لتحسين كفاءة المسارات وتقليل استهلاك الوقود.</li>
-                          <li>جدولة الصيانة الوقائية بشكل صارم بناءً على عدد الكيلومترات أو ساعات التشغيل.</li>
-                          <li>تدريب السائقين على ممارسات القيادة الموفرة للوقود.</li>
-                        </ul>
-                    `;
                 case 'humanResources':
                     let hrInsights = '';
-                    const departments = mockData.humanResources.departments;
-                    const highAbsenceDept = departments.find(d => (d.absences['بدون إذن'] / d.employeeCount) > 0.1);
-                    const lowTrainingDept = departments.find(d => (d.trainingCoursesExecuted / d.trainingPlanTarget) < 0.5);
-
-                    if (highAbsenceDept) {
-                        hrInsights += `<p class="mb-2"><strong>تنبيه (غياب مرتفع):</strong> "إدارة ${highAbsenceDept.name}" لديها معدل غياب بدون إذن يتجاوز 10%. يوصى بتحليل الأسباب واتخاذ إجراءات إدارية.</p>`;
+                    const highTurnoverDept = mockData.humanResources.departments.find(d => d.resignations / d.employeeCount > 0.1);
+                    if (highTurnoverDept) {
+                        hrInsights += `<div class="mb-3"><strong class="text-red-600">تنبيه (دوران وظيفي مرتفع):</strong> "إدارة ${highTurnoverDept.name}" لديها معدل دوران وظيفي عالٍ. <ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> إجراء مقابلات استقالة (Exit Interviews) لفهم الأسباب ووضع خطط لتحسين بيئة العمل.</li></ul></div>`;
                     }
+                    const lowTrainingDept = mockData.humanResources.departments.find(d => d.trainingPlanTarget > 0 && (d.trainingCoursesExecuted / d.trainingPlanTarget) < 0.5);
                     if (lowTrainingDept) {
-                        const trainingExecRate = (lowTrainingDept.trainingCoursesExecuted / lowTrainingDept.trainingPlanTarget) * 100;
-                        hrInsights += `<p class="mb-2"><strong>مؤشر (تدريب منخفض):</strong> نسبة تنفيذ خطة التدريب في "إدارة ${lowTrainingDept.name}" منخفضة (${trainingExecRate.toFixed(1)}%). يتطلب متابعة عاجلة لضمان تطوير المهارات.</p>`;
+                         hrInsights += `<div class="mb-3"><strong class="text-yellow-600">مؤشر (تدريب منخفض):</strong> نسبة تنفيذ خطة التدريب في "إدارة ${lowTrainingDept.name}" منخفضة. <ul class="list-disc list-inside mt-1"><li><strong>الحل المقترح:</strong> متابعة خطة التدريب مع مدير الإدارة وتوفير الموارد اللازمة لتنفيذها.</li></ul></div>`;
                     }
-                    const maternityLeaveDepts = departments.filter(d => d.absences['إجازة وضع'] > 0);
-                    if (maternityLeaveDepts.length > 0) {
-                        hrInsights += `<p class="mb-2"><strong>ملاحظة (إجازة وضع):</strong> يوجد موظفات في إجازة وضع في إدارات: ${maternityLeaveDepts.map(d => d.name).join(', ')}. يوصى بالتخطيط لتغطية مهامهن.</p>`;
-                    }
-                     if (!hrInsights) {
-                        hrInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على بيانات الموارد البشرية.</p>';
+                    if (!hrInsights) {
+                        hrInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً.</p>';
                     }
                     return hrInsights;
 
                 default:
-                    return "لا توجد رؤى متاحة لهذا الموديول.";
+                    return "<p>لا توجد رؤى متاحة لهذا الموديول.</p>";
             }
         };
 
         // Function to render a Card component (simplified HTML version)
         function renderCard(title, contentHtml, iconSvg, iconColor) {
             return `
-                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                    <div class="flex flex-row items-center justify-between space-y-0 pb-2 p-6">
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-4 kpi-card">
+                    <div class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <h3 class="text-sm font-medium text-gray-600">${title}</h3>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" class="h-4 w-4 ${iconColor}">
                             ${iconSvg}
                         </svg>
                     </div>
-                    <div class="p-6 pt-0">
+                    <div class="pt-0">
                         ${contentHtml}
                     </div>
                 </div>
@@ -688,45 +660,6 @@
                 </div>
             `;
             return tableHtml;
-        }
-
-
-        // Function to render Radial Progress Bar
-        function renderRadialProgressBar(percentage, colorClass, label) {
-            const radius = 40;
-            const circumference = 2 * Math.PI * radius;
-            const offset = circumference - (percentage / 100) * circumference;
-            return `
-                <div class="flex flex-col items-center justify-center p-2 radial-progress-bar">
-                    <svg class="w-24 h-24">
-                        <circle
-                            class="text-gray-300"
-                            stroke-width="8"
-                            stroke="currentColor"
-                            fill="transparent"
-                            r="${radius}"
-                            cx="50%"
-                            cy="50%"
-                        />
-                        <circle
-                            class="${colorClass}"
-                            stroke-width="8"
-                            stroke-dasharray="${circumference}"
-                            stroke-dashoffset="${offset}"
-                            stroke-linecap="round"
-                            stroke="currentColor"
-                            fill="transparent"
-                            r="${radius}"
-                            cx="50%"
-                            cy="50%"
-                        />
-                    </svg>
-                    <div class="relative -mt-16 text-xl font-bold text-gray-800">
-                        ${percentage}%
-                    </div>
-                    <div class="text-sm text-gray-600 mt-2">${label}</div>
-                </div>
-            `;
         }
 
         // Drill Down Dialog functions
@@ -831,19 +764,6 @@
                 chapter.executionPercentage = (chapter.actualSpent / chapter.originalAllocation) * 100;
                 chapter.difference = chapter.originalAllocation - chapter.actualSpent;
                 chapter.remaining = chapter.originalAllocation - chapter.actualSpent;
-
-                if (chapter.executionPercentage < 50) {
-                    chapter.notes = 'نسبة تنفيذ منخفضة';
-                } else if (chapter.executionPercentage > 95 && chapter.id === 'chap1') {
-                    chapter.notes = 'اقتراب من تجاوز الاعتماد';
-                } else if (chapter.executionPercentage < 75 && chapter.id === 'chap2') { // New condition for Moshterayat
-                    chapter.notes = 'نسبة تنفيذ منخفضة';
-                }
-                else if (chapter.executionPercentage >= 100 && chapter.id === 'chap4') {
-                    chapter.notes = 'تم الصرف بالكامل';
-                } else {
-                    chapter.notes = 'لا توجد ملاحظات';
-                }
             });
 
             // Calculate KPIs
@@ -861,21 +781,21 @@
                 <h2 class="text-3xl font-bold mb-8 text-gray-800">المالية (موازنة المؤسسة)</h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-6">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-4 kpi-card">
                         <h3 class="text-sm font-medium text-gray-600 mb-2">إجمالي الاعتماد الأصلي</h3>
-                        <div id="kpi-total-allocation" class="text-2xl font-bold text-blue-600">${formatCurrency(totalAllocation)}</div>
+                        <div id="kpi-total-allocation" class="text-xl lg:text-2xl font-bold text-blue-600">${formatCurrency(totalAllocation)}</div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-6">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-4 kpi-card">
                         <h3 class="text-sm font-medium text-gray-600 mb-2">إجمالي المنصرف الفعلي</h3>
-                        <div id="kpi-total-spent" class="text-2xl font-bold text-green-600">${formatCurrency(totalSpent)}</div>
+                        <div id="kpi-total-spent" class="text-xl lg:text-2xl font-bold text-green-600">${formatCurrency(totalSpent)}</div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-6">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-4 kpi-card">
                         <h3 class="text-sm font-medium text-gray-600 mb-2">أعلى باب تنفيذًا</h3>
-                        <div id="kpi-highest-execution" class="text-xl font-bold text-purple-600">${highestExecutionChapter.name} <br> (${highestExecutionChapter.executionPercentage.toFixed(1)}%)</div>
+                        <div id="kpi-highest-execution" class="text-base lg:text-lg font-bold text-purple-600 break-words">${highestExecutionChapter.name} <br> (${highestExecutionChapter.executionPercentage.toFixed(1)}%)</div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-6">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-4 kpi-card">
                         <h3 class="text-sm font-medium text-gray-600 mb-2">أقل باب تنفيذًا</h3>
-                        <div id="kpi-lowest-execution" class="text-xl font-bold text-red-600">${lowestExecutionChapter.name} <br> (${lowestExecutionChapter.executionPercentage.toFixed(1)}%)</div>
+                        <div id="kpi-lowest-execution" class="text-base lg:text-lg font-bold text-red-600 break-words">${lowestExecutionChapter.name} <br> (${lowestExecutionChapter.executionPercentage.toFixed(1)}%)</div>
                     </div>
                 </div>
 
@@ -905,13 +825,17 @@
 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">المعتمد والمنصرف والمتبقي لكل باب</h3></div>
-                        <div class="p-6 pt-0"><canvas id="finance-bar-chart-chapters"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">المعتمد والمنصرف والمتبقي لكل باب</h3></div>
+                        <div class="chart-container">
+                            <canvas id="finance-bar-chart-chapters"></canvas>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع إجمالي الموازنة على الأبواب</h3></div>
-                        <div class="p-6 pt-0"><canvas id="finance-pie-chart-budget-distribution"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">توزيع إجمالي الموازنة على الأبواب</h3></div>
+                        <div class="chart-container">
+                            <canvas id="finance-pie-chart-budget-distribution"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -928,7 +852,7 @@
                 <!-- AI Insights Section -->
                 <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
                     <div class="flex flex-row items-center justify-between p-6">
-                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <h3 class="text-lg font-semibold">تحليلات واقتراحات الذكاء الاصطناعي</h3>
                         <button id="finance-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                             توليد رؤى الذكاء الاصطناعي
                         </button>
@@ -1005,7 +929,7 @@
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return value + '%';
+                                    return formatCurrency(value);
                                 }
                             }
                         }
@@ -1175,27 +1099,7 @@
             const avgCompletion = totalProjects > 0 ? (projects.reduce((sum, p) => sum + p.completionPercentage, 0) / totalProjects).toFixed(1) : 0;
             const projectsOver80 = projects.filter(p => p.completionPercentage >= 80).length;
             const totalObstacles = projects.reduce((sum, p) => sum + p.obstaclesCount, 0);
-            const totalBudget = projects.reduce((sum, p) => sum + p.budgetApproved, 0);
-            const totalSpent = projects.reduce((sum, p) => sum + p.actualSpent, 0);
-            const spendingRatio = totalBudget > 0 ? (totalSpent / totalBudget * 100).toFixed(1) : 0;
-
-            let highestBudgetProject = null;
-            if (totalProjects > 0) {
-                highestBudgetProject = projects.reduce((prev, current) =>
-                    (prev.budgetApproved > current.budgetApproved) ? prev : current
-                );
-            }
-
-            let mostCommonProjectType = 'لا يوجد';
-            if (totalProjects > 0) {
-                const projectTypesCount = projects.reduce((acc, p) => {
-                    acc[p.type] = (acc[p.type] || 0) + 1;
-                    return acc;
-                }, {});
-                mostCommonProjectType = Object.keys(projectTypesCount).reduce((a, b) => projectTypesCount[a] > projectTypesCount[b] ? a : b);
-            }
-
-
+            
             container.innerHTML = `
                 <h2 class="text-3xl font-bold mb-8 text-gray-800">إدارة الاستراتيجية والمشروعات</h2>
 
@@ -1220,64 +1124,46 @@
                 </div>
 
                 <!-- KPI Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     ${renderCard(
-                        'إجمالي عدد المشاريع الحالية',
-                        `<div class="text-2xl font-bold">${totalProjects}</div><p class="text-xs text-gray-500">مشروع</p>`,
+                        'إجمالي المشاريع',
+                        `<div class="text-xl lg:text-2xl font-bold">${totalProjects}</div><p class="text-xs text-gray-500">مشروع</p>`,
                         '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />',
                         'text-purple-500'
                     )}
                     ${renderCard(
-                        'متوسط نسبة الإنجاز',
-                        `<div class="text-2xl font-bold">${avgCompletion}%</div><p class="text-xs text-gray-500">على مستوى الإدارة</p>`,
+                        'متوسط الإنجاز',
+                        `<div class="text-xl lg:text-2xl font-bold">${avgCompletion}%</div><p class="text-xs text-gray-500">على مستوى الإدارة</p>`,
                         '<path d="M22 12h-4l-3 9L9 3l-3 9H2" />',
                         'text-blue-500'
                     )}
                     ${renderCard(
-                        'مشاريع تجاوزت 80%',
-                        `<div class="text-2xl font-bold">${projectsOver80}</div><p class="text-xs text-gray-500">مشروع من أصل ${totalProjects}</p>`,
+                        'مشاريع متقدمة',
+                        `<div class="text-xl lg:text-2xl font-bold">${projectsOver80}</div><p class="text-xs text-gray-500">تجاوزت 80%</p>`,
                         '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />',
                         'text-green-500'
                     )}
                     ${renderCard(
-                        'إجمالي المعوقات المسجلة',
-                        `<div class="text-2xl font-bold">${totalObstacles}</div><p class="text-xs text-gray-500">معوق على المشاريع</p>`,
+                        'إجمالي المعوقات',
+                        `<div class="text-xl lg:text-2xl font-bold">${totalObstacles}</div><p class="text-xs text-gray-500">معوق على المشاريع</p>`,
                         '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />',
                         'text-orange-500'
-                    )}
-                    ${renderCard(
-                        'نسبة الإنفاق الكلية',
-                        `<div class="text-2xl font-bold">${spendingRatio}%</div><p class="text-xs text-gray-500">من إجمالي الموازنة</p>`,
-                        '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />',
-                        'text-cyan-500'
-                    )}
-                     ${renderCard(
-                        'أعلى مشروع موازنة',
-                        `<div class="text-xl font-bold">${highestBudgetProject ? highestBudgetProject.name : 'لا يوجد'}</div><p class="text-xs text-gray-500">${highestBudgetProject ? formatCurrency(highestBudgetProject.budgetApproved) : ''}</p>`,
-                        '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />',
-                        'text-indigo-500'
-                    )}
-                    ${renderCard(
-                        'أكثر نوع مشروع تنفيذًا',
-                        `<div class="text-xl font-bold">${mostCommonProjectType}</div><p class="text-xs text-gray-500"></p>`,
-                        '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />',
-                        'text-teal-500'
                     )}
                 </div>
 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">الموازنة المعتمدة / المنصرف / المتبقي لكل مشروع</h3></div>
-                        <div class="p-6 pt-0"><canvas id="strategyProjects-bar-chart"></canvas></div>
+                    <div class="chart-card lg:col-span-2">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">الموازنة المعتمدة والمنصرف لكل مشروع</h3></div>
+                        <div class="chart-container">
+                            <canvas id="strategyProjects-bar-chart"></canvas>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع المشاريع حسب نوعها</h3></div>
-                        <div class="p-6 pt-0"><canvas id="strategyProjects-pie-chart"></canvas></div>
-                    </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">تطور نسبة الإنجاز بمرور الوقت</h3></div>
-                        <div class="p-6 pt-0"><canvas id="strategyProjects-line-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">توزيع المشاريع حسب نوعها</h3></div>
+                        <div class="chart-container">
+                            <canvas id="strategyProjects-pie-chart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -1294,7 +1180,7 @@
                 <!-- AI Insights Section -->
                 <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
                     <div class="flex flex-row items-center justify-between p-6">
-                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <h3 class="text-lg font-semibold">تحليلات واقتراحات الذكاء الاصطناعي</h3>
                         <button id="strategyProjects-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                             توليد رؤى الذكاء الاصطناعي
                         </button>
@@ -1302,14 +1188,6 @@
                     <div id="strategyProjects-ai-insights-content" class="p-6 pt-0">
                         <p class="text-gray-500">انقر على "توليد رؤى الذكاء الاصطناعي" للحصول على تحليل وتوصيات.</p>
                     </div>
-                </div>
-
-                <div class="mb-8 p-4 bg-yellow-50 border-r-4 border-yellow-500 text-yellow-800 rounded-md">
-                    <h3 class="font-semibold mb-2">ربط بين الموديولات:</h3>
-                    <p class="mb-2">مراقبة التكاليف الفعلية للمشاريع.</p>
-                    <button onclick="navigateToModule('finance')" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                        عرض لوحة المالية
-                    </button>
                 </div>
             `;
             // Attach AI insights button event listener
@@ -1330,9 +1208,9 @@
 
         // Function to get color class for project table row based on completion and obstacles
         function getProjectRowColorClass(project) {
-            if (project.obstaclesCount > 0 || project.completionPercentage < 60) return 'bg-red-500';
-            if (project.completionPercentage >= 90) return 'bg-green-500';
-            if (project.completionPercentage >= 60 && project.completionPercentage < 90) return 'bg-yellow-500';
+            if (project.obstaclesCount > 0 || project.completionPercentage < 60) return 'status-red';
+            if (project.completionPercentage >= 90) return 'status-green';
+            if (project.completionPercentage >= 60 && project.completionPercentage < 90) return 'status-yellow';
             return ''; // Default
         }
 
@@ -1409,7 +1287,6 @@
         function renderStrategyProjectsCharts() {
             if (chartInstances['strategyProjects-bar-chart']) chartInstances['strategyProjects-bar-chart'].destroy();
             if (chartInstances['strategyProjects-pie-chart']) chartInstances['strategyProjects-pie-chart'].destroy();
-            if (chartInstances['strategyProjects-line-chart']) chartInstances['strategyProjects-line-chart'].destroy();
 
             // Bar Chart: الموازنة المعتمدة / المنصرف / المتبقي
             const barCtx = document.getElementById('strategyProjects-bar-chart').getContext('2d');
@@ -1427,11 +1304,6 @@
                             label: 'المنصرف الفعلي',
                             data: currentFilteredProjectsStrategy.map(p => p.actualSpent), // Corrected variable name
                             backgroundColor: '#22c55e', // green-500
-                        },
-                        {
-                            label: 'المتبقي',
-                            data: currentFilteredProjectsStrategy.map(p => p.budgetApproved - p.actualSpent), // Corrected variable name
-                            backgroundColor: '#f59e0b', // amber-500
                         }
                     ]
                 },
@@ -1501,67 +1373,6 @@
                 }
             });
 
-            // Line Chart: تطور نسبة الإنجاز بمرور الوقت (simplified for demo)
-            // Group by month and calculate average completion
-            const monthlyCompletion = currentFilteredProjectsStrategy.reduce((acc, project) => { // Corrected variable name
-                const month = project.month; // Assuming 'month' field exists
-                if (!acc[month]) {
-                    acc[month] = { totalCompletion: 0, count: 0 };
-                }
-                acc[month].totalCompletion += project.completionPercentage;
-                acc[month].count++;
-                return acc;
-            }, {});
-
-            const sortedMonths = Object.keys(monthlyCompletion).sort((a, b) => {
-                const monthsOrder = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-                return monthsOrder.indexOf(a) - monthsOrder.indexOf(b);
-            });
-
-            const lineChartData = sortedMonths.map(month => ({
-                month: month,
-                avgCompletion: (monthlyCompletion[month].totalCompletion / monthlyCompletion[month].count).toFixed(1)
-            }));
-
-            const lineCtx = document.getElementById('strategyProjects-line-chart').getContext('2d');
-            chartInstances['strategyProjects-line-chart'] = new Chart(lineCtx, {
-                type: 'line',
-                data: {
-                    labels: lineChartData.map(d => d.month),
-                    datasets: [{
-                        label: 'متوسط نسبة الإنجاز (%)',
-                        data: lineChartData.map(d => d.avgCompletion),
-                        borderColor: '#FF8042',
-                        tension: 0.1,
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.raw + '%';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
             renderStrategyProjectsDetailedTable(); // Render table after charts
         }
 
@@ -1573,6 +1384,7 @@
                 const financialGap = p.budgetApproved - p.actualSpent;
                 return {
                     id: p.id,
+                    rawData: p,
                     cells: [
                         p.name,
                         p.entity,
@@ -1580,7 +1392,7 @@
                         p.startDate,
                         p.endDate,
                         p.currentStage,
-                        `<span class="block w-full h-full text-center py-2 ${getCompletionColor(p)}">${p.completionPercentage}%</span>`, // Apply color based on project object
+                        `<span class="block w-full text-center py-2 rounded-md text-white ${getCompletionColor(p)}">${p.completionPercentage.toFixed(1)}%</span>`, // Apply color based on project object
                         formatCurrency(p.budgetApproved),
                         formatCurrency(p.actualSpent),
                         formatCurrency(financialGap),
@@ -1591,7 +1403,7 @@
             });
 
             if (rows.length > 0) {
-                tableContainer.innerHTML = renderTable(headers, rows.map(row => ({...row, rawData: null})));
+                tableContainer.innerHTML = renderTable(headers, rows, getProjectRowColorClass);
             } else {
                 tableContainer.innerHTML = '<p class="text-center text-gray-500">لا توجد مشاريع مطابقة للفلاتر المحددة.</p>';
             }
@@ -1608,10 +1420,10 @@
 
         // Function to get color based on completion percentage and obstacles for heatmap effect
         function getCompletionColor(project) {
-            if (project.obstaclesCount > 0 || project.completionPercentage < 60) return 'bg-red-500';
+            if (project.obstaclesCount > 2 || project.completionPercentage < 50) return 'bg-red-500';
             if (project.completionPercentage >= 90) return 'bg-green-500';
-            if (project.completionPercentage >= 60 && project.completionPercentage < 90) return 'bg-yellow-500';
-            return ''; // Default (shouldn't be reached if conditions cover all cases)
+            if (project.completionPercentage >= 50 && project.completionPercentage < 90) return 'bg-yellow-500';
+            return 'bg-gray-400'; 
         }
 
 
@@ -1627,21 +1439,6 @@
             const totalBalance = warehouses.reduce((sum, wh) => sum + wh.currentBalance, 0);
             const totalOpenOrders = warehouses.reduce((sum, wh) => sum + wh.openDispatchOrders + wh.pendingReceiptOrders, 0);
             const totalExpiredItems = warehouses.reduce((sum, wh) => sum + wh.expiredItemsCount, 0);
-            const totalStagnantItems = warehouses.reduce((sum, wh) => sum + wh.stagnantItemsCount, 0);
-
-            let highestTurnoverWarehouse = null;
-            if (warehouses.length > 0) {
-                highestTurnoverWarehouse = warehouses.reduce((prev, current) =>
-                    (prev.turnoverRate > current.turnoverRate) ? prev : current
-                );
-            }
-            let lowestTurnoverWarehouse = null;
-            if (warehouses.length > 0) {
-                lowestTurnoverWarehouse = warehouses.reduce((prev, current) =>
-                    (prev.turnoverRate < current.turnoverRate) ? prev : current
-                );
-            }
-
 
             container.innerHTML = `
                 <h2 class="text-3xl font-bold mb-8 text-gray-800">إدارة المخازن</h2>
@@ -1669,60 +1466,46 @@
                 </div>
 
                 <!-- KPI Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     ${renderCard(
                         'إجمالي الأصناف',
-                        `<div class="text-2xl font-bold">${totalItemCount}</div><p class="text-xs text-gray-500">صنف في جميع المخازن</p>`,
+                        `<div class="text-xl lg:text-2xl font-bold">${totalItemCount}</div><p class="text-xs text-gray-500">صنف</p>`,
                         '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />',
                         'text-blue-500'
                     )}
                     ${renderCard(
-                        'إجمالي الرصيد المخزني',
-                        `<div class="text-2xl font-bold">${formatCurrency(totalBalance)}</div><p class="text-xs text-gray-500">قيمة المخزون الحالي</p>`,
+                        'إجمالي الرصيد',
+                        `<div class="text-xl lg:text-2xl font-bold">${formatCurrency(totalBalance)}</div><p class="text-xs text-gray-500">قيمة المخزون</p>`,
                         '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />',
                         'text-green-500'
                     )}
                     ${renderCard(
-                        'أوامر الصرف والاستلام (مفتوحة/معلقة)',
-                        `<div class="text-2xl font-bold">${totalOpenOrders}</div><p class="text-xs text-gray-500">أمر</p>`,
+                        'أوامر مفتوحة',
+                        `<div class="text-xl lg:text-2xl font-bold">${totalOpenOrders}</div><p class="text-xs text-gray-500">صرف واستلام</p>`,
                         '<path d="M22 12h-4l-3 9L9 3l-3 9H2" />',
                         'text-orange-500'
                     )}
                     ${renderCard(
-                        'عدد الأصناف المنتهية',
-                        `<div class="text-2xl font-bold">${totalExpiredItems}</div><p class="text-xs text-gray-500">صنف</p>`,
+                        'أصناف منتهية',
+                        `<div class="text-xl lg:text-2xl font-bold">${totalExpiredItems}</div><p class="text-xs text-gray-500">صنف</p>`,
                         '<path d="M18 6 6 18" /><path d="m6 6 12 12" />',
                         'text-red-500'
-                    )}
-                    ${renderCard(
-                        'إجمالي الأصناف الراكدة',
-                        `<div class="text-2xl font-bold">${totalStagnantItems}</div><p class="text-xs text-gray-500">صنف راكد</p>`,
-                        '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />',
-                        'text-red-700'
-                    )}
-                    ${renderCard(
-                        'أعلى نسبة دوران مخزون',
-                        `<div class="text-xl font-bold">${highestTurnoverWarehouse ? `${highestTurnoverWarehouse.name} (${(highestTurnoverWarehouse.turnoverRate * 100).toFixed(1)}%)` : 'لا يوجد'}</div><p class="text-xs text-gray-500"></p>`,
-                        '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />',
-                        'text-purple-500'
-                    )}
-                     ${renderCard(
-                        'أقل نسبة دوران مخزون',
-                        `<div class="text-xl font-bold">${lowestTurnoverWarehouse ? `${lowestTurnoverWarehouse.name} (${(lowestTurnoverWarehouse.turnoverRate * 100).toFixed(1)}%)` : 'لا يوجد'}</div><p class="text-xs text-gray-500"></p>`,
-                        '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />',
-                        'text-pink-500'
                     )}
                 </div>
 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">الرصيد وعدد الأصناف حسب المخزن</h3></div>
-                        <div class="p-6 pt-0"><canvas id="inventory-balance-items-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">الرصيد وعدد الأصناف حسب المخزن</h3></div>
+                        <div class="chart-container">
+                            <canvas id="inventory-balance-items-chart"></canvas>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع الأصناف المنتهية حسب المخزن</h3></div>
-                        <div class="p-6 pt-0"><canvas id="inventory-expired-items-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">توزيع الأصناف المنتهية حسب المخزن</h3></div>
+                        <div class="chart-container">
+                            <canvas id="inventory-expired-items-chart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -1739,7 +1522,7 @@
                 <!-- AI Insights Section -->
                 <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
                     <div class="flex flex-row items-center justify-between p-6">
-                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <h3 class="text-lg font-semibold">تحليلات واقتراحات الذكاء الاصطناعي</h3>
                         <button id="inventory-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                             توليد رؤى الذكاء الاصطناعي
                         </button>
@@ -1767,10 +1550,9 @@
 
         // Function to get color class for inventory table row based on turnover and stagnant items
         function getInventoryRowColorClass(warehouse) {
-            if (warehouse.stagnantItemsCount > 15) return 'bg-red-500 text-white'; // More than 15 stagnant items
-            if (warehouse.turnoverRate < 0.50) return 'bg-red-100'; // Turnover less than 50%
-            if (warehouse.turnoverRate >= 0.50 && warehouse.turnoverRate < 0.70) return 'bg-yellow-100'; // Turnover between 50% and 70%
-            if (warehouse.turnoverRate >= 0.70) return 'bg-green-100'; // Turnover more than 70%
+            if (warehouse.stagnantItemsCount > 15 || warehouse.turnoverRate < 0.5) return 'status-red';
+            if (warehouse.turnoverRate >= 0.5 && warehouse.turnoverRate < 0.7) return 'status-yellow';
+            if (warehouse.turnoverRate >= 0.7) return 'status-green';
             return ''; // Default
         }
 
@@ -1941,6 +1723,7 @@
             const rows = currentFilteredWarehouses.map(wh => {
                 return {
                     id: wh.id,
+                    rawData: wh,
                     cells: [
                         wh.name,
                         wh.type,
@@ -1949,7 +1732,7 @@
                         wh.expiredItemsCount,
                         wh.openDispatchOrders,
                         wh.pendingReceiptOrders,
-                        `<span class="block w-full h-full text-center py-2 ${getInventoryRowColorClass(wh)}">${(wh.turnoverRate * 100).toFixed(1)}%</span>`,
+                        `<span class="block w-full text-center py-2 rounded-md text-white ${getInventoryRowColorClass(wh)}">${(wh.turnoverRate * 100).toFixed(1)}%</span>`,
                         wh.lastInventoryDate,
                         wh.notes,
                         wh.isInventoried ? 'جُرد' : 'لم يُجرد',
@@ -1959,7 +1742,7 @@
             });
 
             if (rows.length > 0) {
-                tableContainer.innerHTML = renderTable(headers, rows.map(row => ({...row, rawData: null})));
+                tableContainer.innerHTML = renderTable(headers, rows, getInventoryRowColorClass);
             } else {
                 tableContainer.innerHTML = '<p class="text-center text-gray-500">لا توجد مخازن مطابقة للفلاتر المحددة.</p>';
             }
@@ -2015,24 +1798,28 @@
                 </div>
 
                 <!-- KPI Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    ${renderCard('إجمالي العمليات', `<div class="text-2xl font-bold">${totalOperations}</div>`, '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />', 'text-blue-500')}
-                    ${renderCard('العمليات الموردة', `<div class="text-2xl font-bold">${suppliedOperations}</div>`, '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />', 'text-green-500')}
-                    ${renderCard('نسبة الإنجاز المالي والعقدي', `<div class="text-2xl font-bold">${completionPercentage}%</div>`, '<path d="M22 12h-4l-3 9L9 3l-3 9H2" />', 'text-purple-500')}
-                    ${renderCard('متوسط التوفير', `<div class="text-2xl font-bold">${formatCurrency(avgDifference)}</div>`, '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />', 'text-teal-500')}
-                    ${renderCard('الموردون الفاعلون', `<div class="text-2xl font-bold">${activeSuppliers}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />', 'text-indigo-500')}
-                    ${renderCard('العمليات المعطلة', `<div class="text-2xl font-bold">${stalledOperations}</div>`, '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />', 'text-red-500')}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    ${renderCard('إجمالي العمليات', `<div class="text-xl lg:text-2xl font-bold">${totalOperations}</div>`, '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />', 'text-blue-500')}
+                    ${renderCard('العمليات الموردة', `<div class="text-xl lg:text-2xl font-bold">${suppliedOperations}</div>`, '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />', 'text-green-500')}
+                    ${renderCard('نسبة الإنجاز', `<div class="text-xl lg:text-2xl font-bold">${completionPercentage}%</div>`, '<path d="M22 12h-4l-3 9L9 3l-3 9H2" />', 'text-purple-500')}
+                    ${renderCard('متوسط التوفير', `<div class="text-xl lg:text-2xl font-bold">${formatCurrency(avgDifference)}</div>`, '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />', 'text-teal-500')}
+                    ${renderCard('الموردون الفاعلون', `<div class="text-xl lg:text-2xl font-bold">${activeSuppliers}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />', 'text-indigo-500')}
+                    ${renderCard('العمليات المعطلة', `<div class="text-xl lg:text-2xl font-bold">${stalledOperations}</div>`, '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />', 'text-red-500')}
                 </div>
 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">العمليات حسب النوع (العدد والقيمة)</h3></div>
-                        <div class="p-6 pt-0"><canvas id="procurement-type-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">العمليات حسب النوع (العدد والقيمة)</h3></div>
+                        <div class="chart-container">
+                            <canvas id="procurement-type-chart"></canvas>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع العمليات حسب حالة التوريد</h3></div>
-                        <div class="p-6 pt-0"><canvas id="procurement-status-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">توزيع العمليات حسب حالة التوريد</h3></div>
+                        <div class="chart-container">
+                            <canvas id="procurement-status-chart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -2049,7 +1836,7 @@
                 <!-- AI Insights Section -->
                 <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
                     <div class="flex flex-row items-center justify-between p-6">
-                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <h3 class="text-lg font-semibold">تحليلات واقتراحات الذكاء الاصطناعي</h3>
                         <button id="procurement-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                             توليد رؤى الذكاء الاصطناعي
                         </button>
@@ -2227,13 +2014,17 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">حالة المركبات</h3></div>
-                        <div class="p-6 pt-0"><canvas id="fleet-status-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">حالة المركبات</h3></div>
+                        <div class="chart-container">
+                            <canvas id="fleet-status-chart"></canvas>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">استهلاك الوقود شهرياً</h3></div>
-                        <div class="p-6 pt-0"><canvas id="fleet-fuel-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">استهلاك الوقود شهرياً</h3></div>
+                        <div class="chart-container">
+                            <canvas id="fleet-fuel-chart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -2259,14 +2050,6 @@
                     <div id="fleet-ai-insights-content" class="p-6 pt-0">
                         <p class="text-gray-500">انقر على "توليد رؤى الذكاء الاصطناعي" للحصول على تحليل وتوصيات.</p>
                     </div>
-                </div>
-
-                <div class="mb-8 p-4 bg-yellow-50 border-r-4 border-yellow-500 text-yellow-800 rounded-md">
-                    <h3 class="font-semibold mb-2">ربط بين الموديولات:</h3>
-                    <p class="mb-2">تحليل أثر أعطال النقل على الميزانية.</p>
-                    <button onclick="navigateToModule('finance')" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                        عرض لوحة المالية
-                    </button>
                 </div>
             `;
             // Attach AI insights button event listener
@@ -2364,26 +2147,26 @@
                 </div>
                 
                 <!-- KPI Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    ${renderCard('إجمالي العاملين', `<div class="text-2xl font-bold">${totalEmployees}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />', 'text-blue-500')}
-                    ${renderCard('التعيينات الجديدة (آخر فترة)', `<div class="text-2xl font-bold">${totalHires}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />', 'text-green-500')}
-                    ${renderCard('إجمالي أيام الغياب', `<div class="text-2xl font-bold">${totalAbsences}</div>`, '<path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />', 'text-orange-500')}
-                    ${renderCard('تنفيذ خطة التدريب', `<div class="text-2xl font-bold">${overallTrainingRate}%</div>`, '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />', 'text-purple-500')}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    ${renderCard('إجمالي العاملين', `<div class="text-xl lg:text-2xl font-bold">${totalEmployees}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />', 'text-blue-500')}
+                    ${renderCard('التعيينات الجديدة', `<div class="text-xl lg:text-2xl font-bold">${totalHires}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />', 'text-green-500')}
+                    ${renderCard('إجمالي الغياب', `<div class="text-xl lg:text-2xl font-bold">${totalAbsences}</div><p class="text-xs text-gray-500">يوم</p>`, '<path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />', 'text-orange-500')}
+                    ${renderCard('تنفيذ التدريب', `<div class="text-xl lg:text-2xl font-bold">${overallTrainingRate}%</div>`, '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />', 'text-purple-500')}
                 </div>
 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع المستويات الوظيفية</h3></div>
-                        <div class="p-6 pt-0"><canvas id="hr-job-level-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">توزيع المستويات الوظيفية</h3></div>
+                        <div class="chart-container">
+                            <canvas id="hr-job-level-chart"></canvas>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
-                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع الغيابات حسب النوع</h3></div>
-                        <div class="p-6 pt-0"><canvas id="hr-absence-type-chart"></canvas></div>
-                    </div>
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl col-span-1 lg:col-span-2">
-                         <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">مؤشرات الأداء والغياب حسب الإدارة</h3></div>
-                        <div class="p-6 pt-0"><canvas id="hr-department-performance-chart"></canvas></div>
+                    <div class="chart-card">
+                        <div class="chart-header"><h3 class="text-lg font-semibold">توزيع الغيابات حسب النوع</h3></div>
+                        <div class="chart-container">
+                            <canvas id="hr-absence-type-chart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -2400,7 +2183,7 @@
                 <!-- AI Insights Section -->
                 <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
                     <div class="flex flex-row items-center justify-between p-6">
-                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <h3 class="text-lg font-semibold">تحليلات واقتراحات الذكاء الاصطناعي</h3>
                         <button id="hr-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                             توليد رؤى الذكاء الاصطناعي
                         </button>
@@ -2473,7 +2256,7 @@
                         d.hires,
                         d.resignations,
                         totalAbsences,
-                        `${trainingRate}%`,
+                        `<span class="block w-full text-center py-2 rounded-md text-white ${getTrainingRowColorClass(d)}">${trainingRate}%</span>`,
                         d.notes || 'لا يوجد',
                         `<button class="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded" onclick="handleHRDrillDown('${d.id}')">عرض</button>`
                     ]
@@ -2492,7 +2275,6 @@
         function renderHumanResourcesCharts() {
             if (chartInstances['hr-job-level-chart']) chartInstances['hr-job-level-chart'].destroy();
             if (chartInstances['hr-absence-type-chart']) chartInstances['hr-absence-type-chart'].destroy();
-            if (chartInstances['hr-department-performance-chart']) chartInstances['hr-department-performance-chart'].destroy();
             
             const departments = currentFilteredHRDepts;
             
@@ -2535,40 +2317,13 @@
                 },
                 options: { responsive: true, maintainAspectRatio: false }
             });
-
-            // Bar Chart: Department Performance
-            const deptPerformanceCtx = document.getElementById('hr-department-performance-chart').getContext('2d');
-            chartInstances['hr-department-performance-chart'] = new Chart(deptPerformanceCtx, {
-                type: 'bar',
-                data: {
-                    labels: departments.map(d => d.name),
-                    datasets: [
-                        {
-                            label: 'إجمالي الغياب (أيام)',
-                            data: departments.map(d => Object.values(d.absences).reduce((s, c) => s + c, 0)),
-                            backgroundColor: '#FF8042',
-                        },
-                        {
-                            label: 'نسبة إنجاز المهام (%)',
-                            data: departments.map(d => d.taskCompletionRate),
-                            backgroundColor: '#00C49F',
-                        },
-                         {
-                            label: 'نسبة التأخير (%)',
-                            data: departments.map(d => d.delayPercentage),
-                            backgroundColor: '#FFBB28',
-                        }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
             
             renderHRDetailedTable();
         }
 
         // Function to render all dashboard HTML content once on load
         function renderAllDashboardsContent() {
-            renderFinanceDashboardContent(); // This now renders the government finance dashboard
+            renderFinanceDashboardContent();
             renderStrategyProjectsDashboardContent();
             renderInventoryWarehousingDashboardContent();
             renderProcurementDashboardContent();
@@ -2596,27 +2351,34 @@
 
             // Re-render charts for the active module to ensure responsiveness
             switch (activeModule) {
-                case 'finance': renderFinanceCharts(); break; // This will now render government finance charts
+                case 'finance': renderFinanceCharts(); break;
                 case 'strategyProjects': renderStrategyProjectsCharts(); break;
                 case 'inventoryWarehousing': renderInventoryWarehousingCharts(); break;
                 case 'procurement': renderProcurementCharts(); break;
                 case 'fleetTransport': renderFleetTransportCharts(); break;
                 case 'humanResources': renderHumanResourcesCharts(); break;
             }
+            updateGlobalAlerts();
         }
 
         // Handle Export Reports
         function handleExportReports(format) {
             if (format === 'pdf') {
-                alert('جاري تصدير التقرير الحالي إلى PDF... (قد يستغرق بعض الوقت)');
-                console.log('Simulating PDF export...');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
                 const input = document.getElementById('main-dashboard-content');
+                
+                // Hide elements not needed in PDF
+                const buttons = input.querySelectorAll('button');
+                buttons.forEach(btn => btn.style.display = 'none');
+
                 html2canvas(input, { scale: 2 }).then(canvas => {
+                    // Show elements again
+                    buttons.forEach(btn => btn.style.display = '');
+
                     const imgData = canvas.toDataURL('image/png');
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    const imgWidth = 210; // A4 width in mm
-                    const pageHeight = 297; // A4 height in mm
+                    const imgWidth = 210; 
+                    const pageHeight = 297; 
                     const imgHeight = canvas.height * imgWidth / canvas.width;
                     let heightLeft = imgHeight;
                     let position = 0;
@@ -2631,116 +2393,32 @@
                         heightLeft -= pageHeight;
                     }
                     pdf.save(`${activeModule}-dashboard-report.pdf`);
-                    alert('تم تصدير التقرير بنجاح إلى PDF.');
-                }).catch(error => {
-                    console.error("Error generating PDF:", error);
-                    alert('حدث خطأ أثناء تصدير التقرير إلى PDF.');
                 });
             } else if (format === 'excel') {
-                alert('جاري تصدير البيانات إلى Excel (CSV)...');
-                console.log('Simulating Excel export...');
                 let dataToExport = [];
                 let filename = `${activeModule}_data.csv`;
 
-                // Select data based on active module for CSV export
                 switch(activeModule) {
                     case 'finance':
-                        // For finance, export detailed transactions
                         dataToExport = currentFilteredTransactionsFinance.map(t => {
                             const chapterName = mockData.finance.chapters.find(c => c.id === t.chapterId)?.name || t.chapterId;
-                            return {
-                                'الباب': chapterName,
-                                'الشهر': t.month, // Removed 'الجهة'
-                                'الربع المالي': t.quarter,
-                                'نوع المشروع': t.projectType,
-                                'المبلغ': t.amount,
-                                'الوصف': t.description
-                            };
+                            return { 'الباب': chapterName, 'الشهر': t.month, 'الربع المالي': t.quarter, 'نوع المشروع': t.projectType, 'المبلغ': t.amount, 'الوصف': t.description };
                         });
-                        filename = 'finance_transactions.csv';
                         break;
                     case 'strategyProjects':
-                        dataToExport = currentFilteredProjectsStrategy.map(p => {
-                            const financialGap = p.budgetApproved - p.actualSpent;
-                            return {
-                                'اسم المشروع': p.name,
-                                'الجهة المنفذة': p.entity,
-                                'نوع المشروع': p.type,
-                                'تاريخ البدء': p.startDate,
-                                'تاريخ النهاية': p.endDate,
-                                'المرحلة الحالية': p.currentStage,
-                                'نسبة الإنجاز %': p.completionPercentage,
-                                'الموازنة المعتمدة': p.budgetApproved,
-                                'المنصرف الفعلي': p.actualSpent,
-                                'الفجوة المالية': financialGap,
-                                'عدد المعوقات': p.obstaclesCount
-                            };
-                        });
-                        filename = 'strategy_projects_data.csv';
+                        dataToExport = currentFilteredProjectsStrategy.map(p => ({ 'اسم المشروع': p.name, 'الجهة': p.entity, 'النوع': p.type, 'تاريخ البدء': p.startDate, 'تاريخ النهاية': p.endDate, 'المرحلة': p.currentStage, 'الإنجاز %': p.completionPercentage, 'الموازنة': p.budgetApproved, 'المنصرف': p.actualSpent, 'المعوقات': p.obstaclesCount }));
                         break;
                     case 'inventoryWarehousing':
-                        dataToExport = currentFilteredWarehouses.map(wh => {
-                            return {
-                                'اسم المخزن': wh.name,
-                                'نوع المخزن': wh.type,
-                                'عدد الأصناف': wh.itemCount,
-                                'الرصيد المالي': wh.currentBalance,
-                                'الأصناف المنتهية': wh.expiredItemsCount,
-                                'أوامر الصرف المفتوحة': wh.openDispatchOrders,
-                                'أوامر الاستلام المعلقة': wh.pendingReceiptOrders,
-                                'نسبة الدوران': wh.turnoverRate,
-                                'تاريخ آخر جرد فعلي': wh.lastInventoryDate,
-                                'ملاحظات المتابعة': wh.notes,
-                                'عدد الأصناف الراكدة': wh.stagnantItemsCount,
-                                'حالة الجرد': wh.isInventoried ? 'جُرد' : 'لم يُجرد'
-                            };
-                        });
-                        filename = 'inventory_warehouses_data.csv';
+                        dataToExport = currentFilteredWarehouses.map(wh => ({ 'اسم المخزن': wh.name, 'النوع': wh.type, 'عدد الأصناف': wh.itemCount, 'الرصيد': wh.currentBalance, 'المنتهية': wh.expiredItemsCount, 'دوران (%)': wh.turnoverRate, 'آخر جرد': wh.lastInventoryDate, 'راكد': wh.stagnantItemsCount }));
                         break;
                     case 'procurement':
-                        dataToExport = currentFilteredProcurementOps.map(op => ({
-                            'رقم العملية': op.operationNumber,
-                            'نوع العملية': op.operationType,
-                            'الجهة الطالبة': op.requestingEntity,
-                            'القيمة التقديرية': op.estimatedValue,
-                            'قيمة الترسية': op.awardedValue,
-                            'حالة التوريد': op.supplyStatus,
-                            'حالة العقد': op.contractStatus,
-                            'حالة الدفع': op.paymentStatus,
-                            'عدد الموردين': op.participatingSuppliers,
-                            'اعتراضات': op.objections,
-                            'تاريخ الفتح الفني': op.technicalOpeningDate,
-                            'تاريخ الترسية': op.awardDate
-                        }));
-                        filename = 'procurement_operations.csv';
-                        break;
-                    case 'fleetTransport':
-                        dataToExport = mockData.fleetTransport.fuelConsumption;
-                        filename = 'fleet_fuel_consumption.csv';
+                        dataToExport = currentFilteredProcurementOps.map(op => ({ 'رقم العملية': op.operationNumber, 'النوع': op.operationType, 'الجهة': op.requestingEntity, 'قيمة الترسية': op.awardedValue, 'حالة التوريد': op.supplyStatus, 'حالة العقد': op.contractStatus, 'حالة الدفع': op.paymentStatus }));
                         break;
                     case 'humanResources':
-                        dataToExport = currentFilteredHRDepts.map(d => {
-                             const trainingRate = d.trainingPlanTarget > 0 ? ((d.trainingCoursesExecuted / d.trainingPlanTarget) * 100).toFixed(1) : 0;
-                             return {
-                                'الإدارة': d.name,
-                                'عدد العاملين': d.employeeCount,
-                                'تعيينات': d.hires,
-                                'استقالات': d.resignations,
-                                'غياب مرضي': d.absences['مرضي'],
-                                'غياب اعتيادي': d.absences['اعتيادي'],
-                                'غياب بدون إذن': d.absences['بدون إذن'],
-                                'مأموريات': d.absences['مأمورية'],
-                                'إجازة وضع': d.absences['إجازة وضع'],
-                                'تنفيذ التدريب (%)': trainingRate,
-                                'نسبة التأخير (%)': d.delayPercentage,
-                                'إنجاز المهام (%)': d.taskCompletionRate,
-                                'ملاحظات': d.notes
-                            };
-                        });
-                        filename = 'human_resources_summary.csv';
+                        dataToExport = currentFilteredHRDepts.map(d => ({ 'الإدارة': d.name, 'العاملين': d.employeeCount, 'التعيينات': d.hires, 'الاستقالات': d.resignations, 'تنفيذ التدريب (%)': d.trainingPlanTarget > 0 ? ((d.trainingCoursesExecuted / d.trainingPlanTarget) * 100).toFixed(1) : 0 }));
                         break;
                     default:
-                        alert('لا توجد بيانات قابلة للتصدير لهذا الموديول.');
+                        console.log('No data to export for this module.');
                         return;
                 }
 
@@ -2755,18 +2433,42 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    alert('تم تصدير البيانات بنجاح إلى Excel (CSV).');
-                } else {
-                    alert('لا توجد بيانات لتصديرها.');
                 }
             }
         }
 
-        // Update Alert Message
-        function updateAlertMessage(message) {
+        // Update Global Alert Message in the sidebar
+        function updateGlobalAlerts() {
             const alertDiv = document.getElementById('alert-message');
-            if (message) {
-                alertDiv.innerHTML = message; // Use innerHTML for rich text
+            let criticalAlerts = [];
+
+            // Finance: High spending
+            const highSpendingChapter = mockData.finance.chapters.find(c => c.actualSpent / c.originalAllocation > 0.98);
+            if (highSpendingChapter) {
+                criticalAlerts.push(`<strong>مالي:</strong> الإنفاق في "${highSpendingChapter.name}" تجاوز 98%.`);
+            }
+
+            // Projects: Stalled projects
+            const stalledProject = mockData.strategyProjects.projects.find(p => p.obstaclesCount > 2);
+            if (stalledProject) {
+                criticalAlerts.push(`<strong>مشاريع:</strong> مشروع "${stalledProject.name}" يواجه ${stalledProject.obstaclesCount} معوقات.`);
+            }
+
+            // Inventory: High expired items
+            const highExpiredItemsWarehouse = mockData.inventoryWarehousing.warehouses.find(wh => wh.expiredItemsCount > 15);
+            if (highExpiredItemsWarehouse) {
+                criticalAlerts.push(`<strong>مخزون:</strong> أصناف منتهية الصلاحية مرتفعة في "${highExpiredItemsWarehouse.name}".`);
+            }
+            
+            // Procurement: Stalled operations
+            const stalledProcurement = mockData.procurement.operations.find(op => op.objections !== '');
+            if(stalledProcurement){
+                criticalAlerts.push(`<strong>تعاقدات:</strong> العملية "${stalledProcurement.operationNumber}" متوقفة.`);
+            }
+
+            // Display the most critical alert
+            if (criticalAlerts.length > 0) {
+                alertDiv.innerHTML = criticalAlerts[0]; // Display the first critical alert
                 alertDiv.classList.remove('hidden');
             } else {
                 alertDiv.classList.add('hidden');
@@ -2776,55 +2478,20 @@
         // Simulate real-time updates
         function startRealtimeUpdates() {
             setInterval(() => {
-                // Simulate data changes for active module (for demo purposes)
-                if (activeModule === 'finance') {
-                    // Simulate changes for finance data
-                    mockData.finance.chapters.forEach(chapter => {
-                        chapter.actualSpent += Math.random() * chapter.originalAllocation * 0.005; // Small random increment
-                        if (chapter.actualSpent > chapter.originalAllocation) {
-                            chapter.actualSpent = chapter.originalAllocation; // Cap at original allocation
-                        }
-                    });
-                    renderFinanceCharts(); // Re-render charts with new data
-                    updateAlertMessage(getAIInsights('finance')); // Update AI insights and alerts
-                } else if (activeModule === 'humanResources') {
-                    mockData.humanResources.departments.forEach(d => {
-                        d.absences['مرضي'] += Math.floor(Math.random() * 2);
-                        d.taskCompletionRate = Math.max(80, Math.min(100, d.taskCompletionRate + (Math.random() * 2 - 1)));
-                    });
-                    renderHumanResourcesCharts();
-                    updateAlertMessage(getAIInsights('humanResources'));
-                } else if (activeModule === 'strategyProjects') {
-                    // Simulate changes for strategy projects data
-                    mockData.strategyProjects.projects.forEach(p => {
-                        p.completionPercentage += Math.random() * 5 - 2.5; // Small random increment
-                        p.completionPercentage = Math.max(0, Math.min(100, p.completionPercentage)); // Keep between 0 and 100
-                        p.actualSpent = p.budgetApproved * (p.completionPercentage / 100); // Update spent based on completion
-                    });
-                    renderStrategyProjectsCharts();
-                    updateAlertMessage(getAIInsights('strategyProjects'));
-                } else if (activeModule === 'inventoryWarehousing') {
-                    // Simulate changes for inventory data
-                    mockData.inventoryWarehousing.warehouses.forEach(wh => {
-                        wh.currentBalance += Math.random() * 10000 - 5000; // Simulate balance change
-                        wh.itemCount += Math.round(Math.random() * 2 - 1); // Simulate item count change
-                        wh.turnoverRate = Math.random() * 0.5 + 0.3; // Simulate turnover rate
-                        wh.stagnantItemsCount = Math.round(Math.random() * 20); // Simulate stagnant items
-                        wh.expiredItemsCount = Math.round(Math.random() * 5); // Simulate expired items
-                    });
-                    renderInventoryWarehousingCharts();
-                    updateAlertMessage(getAIInsights('inventoryWarehousing'));
-                } else if (activeModule === 'procurement') {
-                    mockData.procurement.operations.forEach(op => {
-                        if (Math.random() > 0.9) { // 10% chance to change status
-                           const statuses = ['تم', 'قيد التنفيذ', 'لم يتم'];
-                           op.supplyStatus = statuses[Math.floor(Math.random() * statuses.length)];
-                        }
-                    });
-                    renderProcurementCharts();
-                    updateAlertMessage(getAIInsights('procurement'));
-                }
-                // Add more logic here for other modules if needed
+                // Simulate data changes for demo purposes
+                mockData.finance.chapters.forEach(chapter => {
+                    chapter.actualSpent += Math.random() * chapter.originalAllocation * 0.001;
+                });
+                mockData.strategyProjects.projects.forEach(p => {
+                    if(p.completionPercentage < 100) p.completionPercentage += Math.random() * 0.5;
+                });
+                mockData.inventoryWarehousing.warehouses.forEach(wh => {
+                    wh.itemCount += Math.round(Math.random() * 2 - 1);
+                });
+
+                // Re-render the current view and update alerts
+                navigateToModule(activeModule);
+                
             }, 10000); // Update every 10 seconds
         }
 
@@ -2845,9 +2512,8 @@
             document.getElementById('export-pdf-btn').addEventListener('click', () => handleExportReports('pdf'));
             document.getElementById('export-excel-btn').addEventListener('click', () => handleExportReports('excel'));
 
-            // Initial render of the default module (Finance - Government)
-            navigateToModule('finance'); // Set initial active state and styling and render charts
-            updateAlertMessage(getAIInsights('finance')); // Initial AI insights for finance
+            // Initial render of the default module
+            navigateToModule('finance');
 
             // Start real-time updates
             startRealtimeUpdates();
