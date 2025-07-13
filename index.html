@@ -1,0 +1,2857 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحات مؤشرات Dynamics 365</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for radial progress bar */
+        .radial-progress-bar svg {
+            transform: rotate(-90deg);
+        }
+        .radial-progress-bar circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        /* Style for filter dropdowns */
+        .filter-dropdown {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db; /* gray-300 */
+            border-radius: 0.5rem; /* rounded-lg */
+            background-color: #ffffff; /* bg-white */
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.25rem;
+            color: #1f2937; /* text-gray-900 */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+            transition: all 0.2s ease-in-out;
+        }
+        .filter-dropdown:focus {
+            outline: none;
+            border-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* ring-blue-200 */
+        }
+         /* Color coding for table rows */
+        .status-green { background-color: #e6fffa; } /* bg-green-50 */
+        .status-yellow { background-color: #fef9c3; } /* bg-yellow-100 */
+        .status-red { background-color: #fee2e2; } /* bg-red-100 */
+    </style>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <!-- html2canvas and jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    <div class="flex flex-col lg:flex-row-reverse min-h-screen">
+        <!-- Sidebar Navigation -->
+        <aside class="w-full lg:w-64 bg-gray-800 text-white p-6 flex flex-col shadow-lg">
+            <h1 class="text-2xl font-bold mb-8 text-center text-blue-300">لوحات مؤشرات Dynamics 365</h1>
+            <nav class="flex-grow">
+                <ul>
+                    <li class="mb-4">
+                        <button id="nav-finance" class="w-full text-right px-4 py-3 rounded-lg transition duration-200 hover:bg-gray-700 text-gray-300">
+                            المالية
+                        </button>
+                    </li>
+                    <li class="mb-4">
+                        <button id="nav-strategyProjects" class="w-full text-right px-4 py-3 rounded-lg transition duration-200 hover:bg-gray-700 text-gray-300">
+                            إدارة الاستراتيجية والمشروعات
+                        </button>
+                    </li>
+                    <li class="mb-4">
+                        <button id="nav-inventoryWarehousing" class="w-full text-right px-4 py-3 rounded-lg transition duration-200 hover:bg-gray-700 text-gray-300">
+                            إدارة المخازن
+                        </button>
+                    </li>
+                    <li class="mb-4">
+                        <button id="nav-procurement" class="w-full text-right px-4 py-3 rounded-lg transition duration-200 hover:bg-gray-700 text-gray-300">
+                            إدارة التعاقدات
+                        </button>
+                    </li>
+                    <li class="mb-4">
+                        <button id="nav-fleetTransport" class="w-full text-right px-4 py-3 rounded-lg transition duration-200 hover:bg-gray-700 text-gray-300">
+                            إدارة النقل الميكانيكي
+                        </button>
+                    </li>
+                    <li class="mb-4">
+                        <button id="nav-humanResources" class="w-full text-right px-4 py-3 rounded-lg transition duration-200 hover:bg-gray-700 text-gray-300">
+                            الموارد البشرية
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            <!-- Export and Alerts Section -->
+            <div class="mt-auto pt-6 border-t border-gray-700">
+                <h3 class="text-lg font-semibold mb-4">خيارات إضافية</h3>
+                <button id="export-pdf-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 mb-3">
+                    تصدير التقرير (PDF)
+                </button>
+                <button id="export-excel-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 mb-3">
+                    تصدير البيانات (Excel)
+                </button>
+                <div id="alert-message" class="hidden bg-red-500 text-white text-sm p-3 rounded-md animate-pulse">
+                    <!-- Alert message will be inserted here -->
+                </div>
+                <p class="text-xs text-gray-400 mt-4">
+                    * التحديث الفوري للبيانات محاكى كل 10 ثوانٍ.
+                </p>
+                <p class="text-xs text-gray-400 mt-1">
+                    * دعم خاصية المقارنة (Benchmarking) وتخصيص المستخدم (Role-Based View) سيتم إضافتهما في إصدارات مستقبلية.
+                </p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-auto bg-gray-50" id="main-dashboard-content">
+            <!-- Dashboards will be dynamically loaded here -->
+            <div id="finance-dashboard" class="p-6 bg-gray-50 min-h-screen"></div>
+            <div id="strategyProjects-dashboard" class="p-6 bg-gray-50 min-h-screen hidden"></div>
+            <div id="inventoryWarehousing-dashboard" class="p-6 bg-gray-50 min-h-screen hidden"></div>
+            <div id="procurement-dashboard" class="p-6 bg-gray-50 min-h-screen hidden"></div>
+            <div id="fleetTransport-dashboard" class="p-6 bg-gray-50 min-h-screen hidden"></div>
+            <div id="humanResources-dashboard" class="p-6 bg-gray-50 min-h-screen hidden"></div>
+        </main>
+    </div>
+
+    <!-- Drill Down Dialog Structure -->
+    <div id="drill-down-dialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden">
+        <div class="relative z-50 bg-white p-6 rounded-lg shadow-lg sm:max-w-[800px] w-full mx-auto my-auto h-[600px] overflow-y-auto" onclick="event.stopPropagation()">
+            <div class="flex flex-col space-y-1.5 text-center sm:text-right mb-4">
+                <h2 id="drill-down-title" class="text-lg font-semibold leading-none tracking-tight"></h2>
+                <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-700" onclick="closeDrillDownDialog()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
+            <div id="drill-down-content" class="p-4">
+                <!-- Drill down table content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data
+        const mockData = {
+            finance: {
+                chapters: [
+                    { id: 'chap1', name: 'الباب الأول: الأجور وتعويضات العاملين', originalAllocation: 100000000, actualSpent: 95000000 },
+                    { id: 'chap2', name: 'الباب الثاني: شراء السلع والخدمات', originalAllocation: 50000000, actualSpent: 30000000 },
+                    { id: 'chap3', name: 'الباب الثالث: الفوائد', originalAllocation: 20000000, actualSpent: 19000000 },
+                    { id: 'chap4', name: 'الباب الرابع: الدعم والمنح والمزايا الاجتماعية', originalAllocation: 80000000, actualSpent: 80000000 },
+                    { id: 'chap5', name: 'الباب الخامس: المصروفات الأخرى', originalAllocation: 15000000, actualSpent: 10000000 },
+                    { id: 'chap6', name: 'الباب السادس: الاستثمارات', originalAllocation: 70000000, actualSpent: 40000000 },
+                    { id: 'chap7', name: 'الباب السابع: حيازة الأصول المالية', originalAllocation: 10000000, actualSpent: 7000000 },
+                    { id: 'chap8', name: 'الباب الثامن: سداد القروض المحلية والأجنبية', originalAllocation: 30000000, actualSpent: 28000000 },
+                ],
+                detailedTransactions: [
+                    // Example transactions for filtering and drill-down
+                    { id: 't1', chapterId: 'chap1', entity: 'المؤسسة', month: 'يناير', quarter: 'الربع الأول', projectType: 'جاري', amount: 5000000, description: 'رواتب موظفي يناير' },
+                    { id: 't2', chapterId: 'chap1', entity: 'المؤسسة', month: 'يناير', quarter: 'الربع الأول', projectType: 'جاري', amount: 7000000, description: 'رواتب موظفي يناير' },
+                    { id: 't3', chapterId: 'chap2', entity: 'المؤسسة', month: 'فبراير', quarter: 'الربع الأول', projectType: 'جاري', amount: 2000000, description: 'شراء مستلزمات مكتبية' },
+                    { id: 't4', chapterId: 'chap6', entity: 'المؤسسة', month: 'مارس', quarter: 'الربع الأول', projectType: 'استثماري', amount: 5000000, description: 'تطوير البنية التحتية' },
+                    { id: 't5', chapterId: 'chap4', entity: 'المؤسسة', month: 'أبريل', quarter: 'الربع الثاني', projectType: 'دعم', amount: 10000000, description: 'دعم برامج التدريب' },
+                    { id: 't6', chapterId: 'chap1', entity: 'المؤسسة', month: 'فبراير', quarter: 'الربع الأول', projectType: 'جاري', amount: 5000000, description: 'رواتب موظفي فبراير' },
+                    { id: 't7', chapterId: 'chap1', entity: 'المؤسسة', month: 'فبراير', quarter: 'الربع الأول', projectType: 'جاري', amount: 7000000, description: 'رواتب موظفي فبراير' },
+                    { id: 't8', chapterId: 'chap2', entity: 'المؤسسة', month: 'مارس', quarter: 'الربع الأول', projectType: 'جاري', amount: 1500000, description: 'صيانة أجهزة' },
+                    { id: 't9', chapterId: 'chap6', entity: 'المؤسسة', month: 'أبريل', quarter: 'الربع الثاني', projectType: 'استثماري', amount: 7000000, description: 'شراء معدات جديدة' },
+                    { id: 't10', chapterId: 'chap4', entity: 'المؤسسة', month: 'مايو', quarter: 'الربع الثاني', projectType: 'دعم', amount: 12000000, description: 'مزايا اجتماعية للموظفين' },
+                    { id: 't11', chapterId: 'chap1', entity: 'المؤسسة', month: 'مارس', quarter: 'الربع الأول', projectType: 'جاري', amount: 5000000, description: 'رواتب موظفي مارس' },
+                    { id: 't12', chapterId: 'chap1', entity: 'المؤسسة', month: 'مارس', quarter: 'الربع الأول', projectType: 'جاري', amount: 7000000, description: 'رواتب موظفي مارس' },
+                    { id: 't13', chapterId: 'chap2', entity: 'المؤسسة', month: 'أبريل', quarter: 'الربع الثاني', projectType: 'جاري', amount: 1000000, description: 'خدمات استشارية' },
+                    { id: 't14', chapterId: 'chap6', entity: 'المؤسسة', month: 'مايو', quarter: 'الربع الثاني', projectType: 'استثماري', amount: 6000000, description: 'تحديث أنظمة تكنولوجيا المعلومات' },
+                    { id: 't15', chapterId: 'chap4', entity: 'المؤسسة', month: 'يونيو', quarter: 'الربع الثاني', projectType: 'دعم', amount: 15000000, description: 'برامج تطوير الموظفين' },
+                    { id: 't16', chapterId: 'chap1', entity: 'المؤسسة', month: 'أبريل', quarter: 'الربع الثاني', projectType: 'جاري', amount: 5000000, description: 'رواتب موظفي أبريل' },
+                    { id: 't17', chapterId: 'chap1', entity: 'المؤسسة', month: 'أبريل', quarter: 'الربع الثاني', projectType: 'جاري', amount: 7000000, description: 'رواتب موظفي أبريل' },
+                    { id: 't18', chapterId: 'chap2', entity: 'المؤسسة', month: 'مايو', quarter: 'الربع الثاني', projectType: 'جاري', amount: 800000, description: 'شراء برمجيات' },
+                    { id: 't19', chapterId: 'chap6', entity: 'المؤسسة', month: 'يونيو', quarter: 'الربع الثاني', projectType: 'استثماري', amount: 8000000, description: 'توسعة مباني' },
+                    { id: 't20', chapterId: 'chap4', entity: 'المؤسسة', month: 'يونيو', quarter: 'الربع الثاني', projectType: 'دعم', amount: 18000000, description: 'دعم صحي للموظفين' },
+                    { id: 't21', chapterId: 'chap3', entity: 'المؤسسة', month: 'يونيو', quarter: 'الربع الثاني', projectType: 'جاري', amount: 5000000, description: 'فوائد قروض داخلية' },
+                    { id: 't22', chapterId: 'chap5', entity: 'المؤسسة', month: 'مايو', quarter: 'الربع الثاني', projectType: 'جاري', amount: 1000000, description: 'مصروفات تشغيلية متنوعة' },
+                    { id: 't23', chapterId: 'chap7', entity: 'المؤسسة', month: 'أبريل', quarter: 'الربع الثاني', projectType: 'استثماري', amount: 2000000, description: 'حيازة أصول استثمارية' },
+                    { id: 't24', chapterId: 'chap8', entity: 'المؤسسة', month: 'يونيو', quarter: 'الربع الثاني', projectType: 'جاري', amount: 10000000, description: 'سداد دفعة قرض بنكي' },
+                ]
+            },
+            strategyProjects: {
+                // New detailed project data with diverse months
+                projects: [
+                    {
+                        id: 's_proj1',
+                        name: 'مشروع تطوير نظام الفوترة',
+                        entity: 'إدارة المالية',
+                        type: 'رقمي',
+                        startDate: '2023-01-15',
+                        endDate: '2023-12-31',
+                        currentStage: 'تطوير',
+                        completionPercentage: 85,
+                        budgetApproved: 1000000,
+                        actualSpent: 850000,
+                        obstaclesCount: 2,
+                        month: 'يونيو',
+                        quarter: 'الربع الثاني'
+                    },
+                    {
+                        id: 's_proj2',
+                        name: 'برنامج تدريب القيادات الجديدة',
+                        entity: 'الموارد البشرية',
+                        type: 'تطوير إداري',
+                        startDate: '2023-03-01',
+                        endDate: '2023-09-30',
+                        currentStage: 'مراجعة',
+                        completionPercentage: 65,
+                        budgetApproved: 500000,
+                        actualSpent: 350000,
+                        obstaclesCount: 1,
+                        month: 'مايو', // Changed month
+                        quarter: 'الربع الثاني'
+                    },
+                    {
+                        id: 's_proj3',
+                        name: 'تحليل بيانات العملاء لزيادة الكفاءة',
+                        entity: 'إدارة العمليات',
+                        type: 'ذكاء أعمال',
+                        startDate: '2023-02-01',
+                        endDate: '2023-07-31',
+                        currentStage: 'تسليم',
+                        completionPercentage: 92,
+                        budgetApproved: 750000,
+                        actualSpent: 700000,
+                        obstaclesCount: 0,
+                        month: 'أبريل', // Changed month
+                        quarter: 'الربع الثاني'
+                    },
+                    {
+                        id: 's_proj4',
+                        name: 'تخطيط التوسع في المنطقة الجديدة',
+                        entity: 'إدارة التخطيط',
+                        type: 'تخطيط',
+                        startDate: '2023-04-01',
+                        endDate: '2024-03-31',
+                        currentStage: 'تطوير',
+                        completionPercentage: 40,
+                        budgetApproved: 2000000,
+                        actualSpent: 600000,
+                        obstaclesCount: 3,
+                        month: 'مارس', // Changed month
+                        quarter: 'الربع الأول'
+                    },
+                    {
+                        id: 's_proj5',
+                        name: 'تطوير تطبيق داخلي للموظفين',
+                        entity: 'إدارة تكنولوجيا المعلومات',
+                        type: 'رقمي',
+                        startDate: '2023-05-01',
+                        endDate: '2023-11-30',
+                        currentStage: 'تطوير',
+                        completionPercentage: 55,
+                        budgetApproved: 300000,
+                        actualSpent: 150000,
+                        obstaclesCount: 0,
+                        month: 'فبراير', // Changed month
+                        quarter: 'الربع الأول'
+                    },
+                    {
+                        id: 's_proj6',
+                        name: 'مشروع تحسين جودة الخدمات',
+                        entity: 'إدارة الجودة',
+                        type: 'تطوير إداري',
+                        startDate: '2023-01-01',
+                        endDate: '2023-06-30',
+                        currentStage: 'منتهي',
+                        completionPercentage: 100,
+                        budgetApproved: 400000,
+                        actualSpent: 400000,
+                        obstaclesCount: 0,
+                        month: 'يناير', // Changed month
+                        quarter: 'الربع الأول'
+                    },
+                    {
+                        id: 's_proj7',
+                        name: 'دراسة جدوى لمشروع استثماري جديد',
+                        entity: 'إدارة الاستثمار',
+                        type: 'تخطيط',
+                        startDate: '2023-06-01',
+                        endDate: '2023-08-31',
+                        currentStage: 'تطوير',
+                        completionPercentage: 20,
+                        budgetApproved: 100000,
+                        actualSpent: 10000,
+                        obstaclesCount: 1,
+                        month: 'يونيو',
+                        quarter: 'الربع الثاني'
+                    },
+                    {
+                        id: 's_proj8',
+                        name: 'مشروع أرشفة المستندات',
+                        entity: 'إدارة السجلات',
+                        type: 'رقمي',
+                        startDate: '2023-02-10',
+                        endDate: '2023-07-20',
+                        currentStage: 'تطوير',
+                        completionPercentage: 70,
+                        budgetApproved: 250000,
+                        actualSpent: 180000,
+                        obstaclesCount: 0,
+                        month: 'مايو',
+                        quarter: 'الربع الثاني'
+                    },
+                    {
+                        id: 's_proj9',
+                        name: 'برنامج تحفيز الموظفين',
+                        entity: 'الموارد البشرية',
+                        type: 'تطوير إداري',
+                        startDate: '2023-01-01',
+                        endDate: '2023-12-31',
+                        currentStage: 'تنفيذ',
+                        completionPercentage: 50,
+                        budgetApproved: 150000,
+                        actualSpent: 70000,
+                        obstaclesCount: 0,
+                        month: 'أبريل',
+                        quarter: 'الربع الثاني'
+                    },
+                    {
+                        id: 's_proj10',
+                        name: 'مشروع تحليل السوق للمنتجات الجديدة',
+                        entity: 'إدارة التسويق',
+                        type: 'ذكاء أعمال',
+                        startDate: '2023-03-01',
+                        endDate: '2023-06-30',
+                        currentStage: 'تسليم',
+                        completionPercentage: 95,
+                        budgetApproved: 120000,
+                        actualSpent: 115000,
+                        obstaclesCount: 0,
+                        month: 'يونيو',
+                        quarter: 'الربع الثاني'
+                    }
+                ],
+            },
+            inventoryWarehousing: {
+                warehouses: [
+                    {
+                        id: 'wh1',
+                        name: 'المخزن المركزي أ',
+                        type: 'مركزي',
+                        itemCount: 1500,
+                        currentBalance: 5000000,
+                        expiredItemsCount: 20,
+                        openDispatchOrders: 5,
+                        pendingReceiptOrders: 3,
+                        turnoverRate: 0.85, // 85%
+                        lastInventoryDate: '2024-05-15',
+                        notes: 'جاهز للتكامل',
+                        stagnantItemsCount: 5, // Less than 10
+                        isInventoried: true,
+                        detailedItems: [
+                            { itemId: 'itemA', itemName: 'صنف أ', quantity: 100, value: 50000, status: 'نشط' },
+                            { itemId: 'itemB', itemName: 'صنف ب', quantity: 50, value: 20000, status: 'نشط' },
+                            { itemId: 'itemC', itemName: 'صنف ج', quantity: 5, value: 1000, status: 'منتهي الصلاحية' },
+                        ],
+                        dispatchOrders: [
+                            { orderId: 'DO001', date: '2024-06-01', status: 'مفتوح', items: 10, value: 5000 },
+                            { orderId: 'DO002', date: '2024-06-05', status: 'مفتوح', items: 15, value: 7500 },
+                        ],
+                        receiptOrders: [
+                            { orderId: 'RO001', date: '2024-06-10', status: 'معلق', items: 20, value: 10000 },
+                        ]
+                    },
+                    {
+                        id: 'wh2',
+                        name: 'المخزن الفرعي ب',
+                        type: 'فرعي',
+                        itemCount: 800,
+                        currentBalance: 2000000,
+                        expiredItemsCount: 5,
+                        openDispatchOrders: 2,
+                        pendingReceiptOrders: 1,
+                        turnoverRate: 0.65, // 65%
+                        lastInventoryDate: '2024-04-20',
+                        notes: 'تحت المراجعة',
+                        stagnantItemsCount: 12, // More than 10
+                        isInventoried: true,
+                        detailedItems: [
+                            { itemId: 'itemD', itemName: 'صنف د', quantity: 200, value: 100000, status: 'نشط' },
+                            { itemId: 'itemE', itemName: 'صنف هـ', quantity: 10, value: 5000, status: 'راكد' },
+                        ],
+                        dispatchOrders: [
+                            { orderId: 'DO003', date: '2024-05-20', status: 'مفتوح', items: 5, value: 2500 },
+                        ],
+                        receiptOrders: [
+                            { orderId: 'RO002', date: '2024-05-25', status: 'معلق', items: 8, value: 4000 },
+                        ]
+                    },
+                    {
+                        id: 'wh3',
+                        name: 'المخزن الفرعي ج',
+                        type: 'فرعي',
+                        itemCount: 300,
+                        currentBalance: 500000,
+                        expiredItemsCount: 10,
+                        openDispatchOrders: 0,
+                        pendingReceiptOrders: 0,
+                        turnoverRate: 0.40, // 40%
+                        lastInventoryDate: '2024-03-01',
+                        notes: 'راكدة',
+                        stagnantItemsCount: 18, // More than 10
+                        isInventoried: false, // Not inventoried recently
+                        detailedItems: [
+                            { itemId: 'itemF', itemName: 'صنف و', quantity: 50, value: 25000, status: 'راكد' },
+                        ],
+                        dispatchOrders: [],
+                        receiptOrders: []
+                    }
+                ]
+            },
+            procurement: {
+                operations: [
+                    { id: 'proc001', operationNumber: 'OP-2024-001', operationType: 'شراء مباشر', requestingEntity: 'إدارة تكنولوجيا المعلومات', estimatedValue: 150000, awardedValue: 145000, supplyStatus: 'تم', contractStatus: 'مفعل', paymentStatus: 'تم', participatingSuppliers: 3, objections: '', technicalOpeningDate: '2024-01-15', awardDate: '2024-01-20', supplierName: 'المورد أ' },
+                    { id: 'proc002', operationNumber: 'OP-2024-002', operationType: 'ممارسة', requestingEntity: 'إدارة الصيانة', estimatedValue: 500000, awardedValue: 480000, supplyStatus: 'قيد التنفيذ', contractStatus: 'مفعل', paymentStatus: 'معلق', participatingSuppliers: 5, objections: '', technicalOpeningDate: '2024-02-01', awardDate: '2024-02-10', supplierName: 'المورد ب' },
+                    { id: 'proc003', operationNumber: 'OP-2024-003', operationType: 'مزاد', requestingEntity: 'إدارة الأصول', estimatedValue: 1000000, awardedValue: 1200000, supplyStatus: 'تم', contractStatus: 'مفعل', paymentStatus: 'تم', participatingSuppliers: 8, objections: '', technicalOpeningDate: '2024-03-05', awardDate: '2024-03-15', supplierName: 'المشتري س' },
+                    { id: 'proc004', operationNumber: 'OP-2024-004', operationType: 'شراء مباشر', requestingEntity: 'الموارد البشرية', estimatedValue: 50000, awardedValue: 49000, supplyStatus: 'تم', contractStatus: 'مفعل', paymentStatus: 'تم', participatingSuppliers: 2, objections: '', technicalOpeningDate: '2024-04-10', awardDate: '2024-04-12', supplierName: 'المورد ج' },
+                    { id: 'proc005', operationNumber: 'OP-2024-005', operationType: 'ممارسة', requestingEntity: 'إدارة المشاريع', estimatedValue: 750000, awardedValue: 0, supplyStatus: 'لم يتم', contractStatus: 'لم يتم', paymentStatus: 'لم يبدأ', participatingSuppliers: 6, objections: 'اعتراض على المواصفات الفنية', technicalOpeningDate: '2024-05-01', awardDate: null, supplierName: '' },
+                    { id: 'proc006', operationNumber: 'OP-2024-006', operationType: 'شراء مباشر', requestingEntity: 'إدارة التسويق', estimatedValue: 80000, awardedValue: 78000, supplyStatus: 'قيد التنفيذ', contractStatus: 'مفعل', paymentStatus: 'لم يبدأ', participatingSuppliers: 4, objections: '', technicalOpeningDate: '2024-06-01', awardDate: '2024-06-05', supplierName: 'المورد د' },
+                    { id: 'proc007', operationNumber: 'OP-2024-007', operationType: 'ممارسة', requestingEntity: 'إدارة تكنولوجيا المعلومات', estimatedValue: 300000, awardedValue: 290000, supplyStatus: 'تم', contractStatus: 'مفعل', paymentStatus: 'معلق', participatingSuppliers: 7, objections: '', technicalOpeningDate: '2024-06-10', awardDate: '2024-06-20', supplierName: 'المورد أ' },
+                    { id: 'proc008', operationNumber: 'OP-2024-008', operationType: 'مزاد', requestingEntity: 'إدارة الأصول', estimatedValue: 250000, awardedValue: 265000, supplyStatus: 'قيد التنفيذ', contractStatus: 'مسودة', paymentStatus: 'لم يبدأ', participatingSuppliers: 10, objections: '', technicalOpeningDate: '2024-07-01', awardDate: '2024-07-10', supplierName: 'المشتري ص' }
+                ]
+            },
+            fleetTransport: {
+                vehicleStatus: [
+                    { name: ' جاهزة', value: 80 },
+                    { name: 'معطلة', value: 10 },
+                    { name: 'صيانة', value: 5 },
+                ],
+                breakdownsVsPreventive: { breakdowns: 20, preventive: 150 },
+                fuelConsumption: [
+                    { month: 'يناير', consumption: 5000 },
+                    { month: 'فبراير', consumption: 5200 },
+                    { month: 'مارس', consumption: 4800 },
+                    { month: 'أبريل', consumption: 5500 },
+                ],
+                costPerVehicle: [
+                    { vehicle: 'مركبة 1', cost: 1200 },
+                    { vehicle: 'مركبة 2', cost: 1500 },
+                    { vehicle: 'مركبة 3', cost: 1100 },
+                ],
+            },
+            humanResources: {
+                departments: [
+                    {
+                        id: 'hr_dep2',
+                        name: 'إدارة المالية',
+                        employeeCount: 30,
+                        jobLevels: { 'قيادي': 1, 'إشرافي': 4, 'تنفيذي': 25, 'فني': 0, 'مؤقت': 0 },
+                        hires: 2,
+                        resignations: 0,
+                        absences: { 'مرضي': 5, 'اعتيادي': 10, 'بدون إذن': 0, 'مأمورية': 12, 'إجازة وضع': 0 },
+                        trainingCoursesExecuted: 5,
+                        trainingPlanTarget: 5,
+                        delayPercentage: 2,
+                        taskCompletionRate: 98,
+                        notes: 'أداء متميز'
+                    },
+                    {
+                        id: 'hr_dep4',
+                        name: 'إدارة الموارد البشرية',
+                        employeeCount: 15,
+                        jobLevels: { 'قيادي': 1, 'إشرافي': 2, 'تنفيذي': 12, 'فني': 0, 'مؤقت': 0 },
+                        hires: 1,
+                        resignations: 0,
+                        absences: { 'مرضي': 2, 'اعتيادي': 5, 'بدون إذن': 1, 'مأمورية': 8, 'إجازة وضع': 1 },
+                        trainingCoursesExecuted: 4,
+                        trainingPlanTarget: 4,
+                        delayPercentage: 3,
+                        taskCompletionRate: 97,
+                        notes: ''
+                    },
+                    {
+                        id: 'hr_dep5',
+                        name: 'إدارة التعاقدات',
+                        employeeCount: 25,
+                        jobLevels: { 'قيادي': 1, 'إشرافي': 3, 'تنفيذي': 21, 'فني': 0, 'مؤقت': 0 },
+                        hires: 3,
+                        resignations: 1,
+                        absences: { 'مرضي': 8, 'اعتيادي': 12, 'بدون إذن': 1, 'مأمورية': 15, 'إجازة وضع': 0 },
+                        trainingCoursesExecuted: 3,
+                        trainingPlanTarget: 6,
+                        delayPercentage: 8,
+                        taskCompletionRate: 92,
+                        notes: 'تحتاج لتدريب على التفاوض'
+                    },
+                    {
+                        id: 'hr_dep6',
+                        name: 'إدارة المخازن',
+                        employeeCount: 40,
+                        jobLevels: { 'قيادي': 1, 'إشرافي': 4, 'تنفيذي': 25, 'فني': 10, 'مؤقت': 0 },
+                        hires: 4,
+                        resignations: 2,
+                        absences: { 'مرضي': 15, 'اعتيادي': 20, 'بدون إذن': 3, 'مأمورية': 10, 'إجازة وضع': 0 },
+                        trainingCoursesExecuted: 7,
+                        trainingPlanTarget: 8,
+                        delayPercentage: 10,
+                        taskCompletionRate: 90,
+                        notes: 'معدل دوران عالي'
+                    }
+                ]
+            }
+        };
+
+        const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#8A2BE2', '#DEB887'];
+
+        var activeModule = 'finance';
+        var alertMessage = '';
+        var chartInstances = {}; // To store Chart.js instances for destruction/re-rendering
+
+        // Utility function to format currency - Egyptian Pound
+        const formatCurrency = (value) => `${value.toLocaleString()} ج.م`;
+
+        // Utility function to simulate AI insights with solutions and percentages
+        const getAIInsights = async (module) => {
+            // In a real application, this would call the Gemini API
+            // For demonstration, we return predefined insights based on the module.
+            switch (module) {
+                case 'finance':
+                    var insights = '';
+                    const chap1 = mockData.finance.chapters.find(c => c.id === 'chap1');
+                    const chap2 = mockData.finance.chapters.find(c => c.id === 'chap2'); // Assuming chap2 for 'المشتريات' for the alert
+                    const chap6 = mockData.finance.chapters.find(c => c.id === 'chap6');
+                    const chap4 = mockData.finance.chapters.find(c => c.id === 'chap4');
+
+                    if (chap1.actualSpent / chap1.originalAllocation > 0.95) {
+                        insights += `<p class="mb-2"><strong>تنبيه (الباب الأول - الأجور):</strong> تجاوز الإنفاق على الأجور 95% من الاعتماد الأصلي (${(chap1.actualSpent / chap1.originalAllocation * 100).toFixed(1)}%). يوصى بمراجعة الموازنة المتبقية لهذا الباب لتجنب أي عجز محتمل.</p>`;
+                    }
+                    if (chap2.actualSpent / chap2.originalAllocation < 0.75) {
+                        insights += `<p class="mb-2"><strong>مؤشر (الباب الثاني - شراء السلع والخدمات):</strong> نسبة تنفيذ المشتريات أقل من 75% (${(chap2.actualSpent / chap2.originalAllocation * 100).toFixed(1)}%). قد يشير هذا إلى تأخر في عمليات الشراء. يوصى بتحليل أسباب التأخير ووضع خطط لتسريع التنفيذ.</p>`;
+                    }
+                    if (chap4.actualSpent / chap4.originalAllocation >= 1) {
+                        insights += `<p class="mb-2"><strong>مؤشر (الباب الرابع - الدعم):</strong> تم صرف دعم المواطن بالكامل (${(chap4.actualSpent / chap4.originalAllocation * 100).toFixed(1)}%). هذا يعكس التزامًا كاملاً ببنود الدعم المخصصة.</p>`;
+                    }
+
+                    if (!insights) {
+                        insights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على البيانات الحالية.</p>';
+                    }
+                    return insights;
+                case 'strategyProjects':
+                    var projInsights = '';
+                    const projects = mockData.strategyProjects.projects;
+                    const totalProjects = projects.length;
+                    const avgCompletion = projects.reduce((sum, p) => sum + p.completionPercentage, 0) / totalProjects;
+                    const projectsOver80 = projects.filter(p => p.completionPercentage >= 80).length;
+                    const totalObstacles = projects.reduce((sum, p) => sum + p.obstaclesCount, 0);
+                    const lowestCompletionProject = projects.reduce((prev, current) =>
+                        (prev.completionPercentage < current.completionPercentage) ? prev : current
+                    );
+
+                    if (lowestCompletionProject.completionPercentage < 60 || lowestCompletionProject.obstaclesCount > 0) {
+                        projInsights += `<p class="mb-2"><strong>تنبيه (أقل مشروع تنفيذًا):</strong> المشروع "${lowestCompletionProject.name}" لديه نسبة إنجاز منخفضة (${lowestCompletionProject.completionPercentage}%) وبه ${lowestCompletionProject.obstaclesCount} معوقات. يتطلب مراجعة فورية.</p>`;
+                    }
+                    if (projectsOver80 / totalProjects > 0.5) {
+                        projInsights += `<p class="mb-2"><strong>مؤشر إيجابي:</strong> ${projectsOver80} مشروعًا (${(projectsOver80 / totalProjects * 100).toFixed(1)}%) تجاوزت نسبة إنجاز 80%، مما يدل على تقدم جيد.</p>`;
+                    }
+                    if (totalObstacles > totalProjects * 0.5) {
+                        projInsights += `<p class="mb-2"><strong>تنبيه (المعوقات):</strong> إجمالي المعوقات المسجلة (${totalObstacles}) مرتفع. يوصى بتحليل الأسباب الجذرية للمعوقات ووضع خطة لمعالجتها.</p>`;
+                    }
+
+                    if (!projInsights) {
+                        projInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على بيانات المشاريع.</p>';
+                    }
+                    return projInsights;
+                case 'inventoryWarehousing':
+                    var invInsights = '';
+                    const warehouses = mockData.inventoryWarehousing.warehouses;
+                    const stagnantAlertThreshold = 10; // More than 10 stagnant items
+
+                    warehouses.forEach(wh => {
+                        if (wh.stagnantItemsCount > stagnantAlertThreshold) {
+                            invInsights += `<p class="mb-2"><strong>تنبيه (المخزن ${wh.name}):</strong> يحتوي على ${wh.stagnantItemsCount} صنف راكد، وهو يتجاوز الحد المسموح به (${stagnantAlertThreshold}). يوصى بمراجعة هذه الأصناف.</p>`;
+                        }
+                        if (wh.turnoverRate < 0.50) { // Less than 50% turnover
+                            invInsights += `<p class="mb-2"><strong>مؤشر (المخزن ${wh.name}):</strong> نسبة دوران المخزون منخفضة (${(wh.turnoverRate * 100).toFixed(1)}%). قد يشير إلى مخزون بطيء الحركة.</p>`;
+                        }
+                        if (!wh.isInventoried) {
+                            invInsights += `<p class="mb-2"><strong>تنبيه (المخزن ${wh.name}):</strong> لم يتم جرد المخزن مؤخرًا. يوصى بإجراء جرد فعلي في أقرب وقت.</p>`;
+                        }
+                    });
+
+                    if (!invInsights) {
+                        invInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على بيانات المخازن.</p>';
+                    }
+                    return invInsights;
+                case 'procurement':
+                     const operations = mockData.procurement.operations;
+                     const totalOps = operations.length;
+                     const stalledOps = operations.filter(op => op.objections !== '').length;
+                     const pendingPaymentOps = operations.filter(op => op.paymentStatus === 'معلق').length;
+                     let procInsights = '';
+
+                     if (stalledOps > 0) {
+                         procInsights += `<p class="mb-2"><strong>تنبيه (عمليات متعثرة):</strong> يوجد ${stalledOps} عملية متوقفة بسبب اعتراضات. يوصى بمراجعة هذه العمليات بشكل عاجل لتجنب التأخير في المشاريع المرتبطة بها.</p>`;
+                     }
+                     if (pendingPaymentOps / totalOps > 0.25) {
+                         procInsights += `<p class="mb-2"><strong>مؤشر (دفعات معلقة):</strong> أكثر من 25% من العمليات لديها دفعات معلقة. قد يؤثر هذا على علاقات الموردين. يوصى بمراجعة دورة الدفع.</p>`;
+                     }
+                     const avgDiff = operations.filter(op => op.awardedValue > 0).reduce((sum, op) => sum + (op.estimatedValue - op.awardedValue), 0) / operations.filter(op => op.awardedValue > 0).length;
+                     if (avgDiff > 0) {
+                         procInsights += `<p class="mb-2"><strong>مؤشر إيجابي (التوفير):</strong> متوسط الفرق بين القيمة التقديرية والترسية يمثل توفيرًا يقدر بـ ${formatCurrency(avgDiff)} لكل عملية. هذا يعكس كفاءة في التفاوض.</p>`;
+                     }
+
+                     if (!procInsights) {
+                         procInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على بيانات التعاقدات.</p>';
+                     }
+                     return procInsights;
+                case 'fleetTransport':
+                    return `
+                        <p class="mb-2"><strong>تحسين كفاءة الأسطول:</strong> نسبة المركبات المعطلة تبلغ <strong>11%</strong> من إجمالي الأسطول وتتطلب اهتماماً. يوصى بزيادة عمليات الصيانة الوقائية لتقليل الأعطال المفاجئة بنسبة <strong>20%</strong>.</p>
+                        <p class="mb-2"><strong>تنبؤ باستهلاك الوقود:</strong> من المتوقع أن يرتفع استهلاك الوقود بنسبة <strong>8%</strong> في الأشهر القادمة بسبب زيادة العمليات. يوصى بمراجعة سياسات التزود بالوقود.</p>
+                        <p><strong>تحليل تكلفة التشغيل:</strong> تكلفة تشغيل بعض المركبات أعلى من المتوسط بنسبة <strong>10-15%</strong>. يوصى بتحليل مفصل لأسباب هذا الارتفاع واتخاذ إجراءات تصحيحية.</p>
+                        <p class="mt-2"><strong>حلول مقترحة:</strong></p>
+                        <ul class="list-disc list-inside">
+                          <li>تطبيق نظام تتبع المركبات لتحسين كفاءة المسارات وتقليل استهلاك الوقود.</li>
+                          <li>جدولة الصيانة الوقائية بشكل صارم بناءً على عدد الكيلومترات أو ساعات التشغيل.</li>
+                          <li>تدريب السائقين على ممارسات القيادة الموفرة للوقود.</li>
+                        </ul>
+                    `;
+                case 'humanResources':
+                    let hrInsights = '';
+                    const departments = mockData.humanResources.departments;
+                    const highAbsenceDept = departments.find(d => (d.absences['بدون إذن'] / d.employeeCount) > 0.1);
+                    const lowTrainingDept = departments.find(d => (d.trainingCoursesExecuted / d.trainingPlanTarget) < 0.5);
+
+                    if (highAbsenceDept) {
+                        hrInsights += `<p class="mb-2"><strong>تنبيه (غياب مرتفع):</strong> "إدارة ${highAbsenceDept.name}" لديها معدل غياب بدون إذن يتجاوز 10%. يوصى بتحليل الأسباب واتخاذ إجراءات إدارية.</p>`;
+                    }
+                    if (lowTrainingDept) {
+                        const trainingExecRate = (lowTrainingDept.trainingCoursesExecuted / lowTrainingDept.trainingPlanTarget) * 100;
+                        hrInsights += `<p class="mb-2"><strong>مؤشر (تدريب منخفض):</strong> نسبة تنفيذ خطة التدريب في "إدارة ${lowTrainingDept.name}" منخفضة (${trainingExecRate.toFixed(1)}%). يتطلب متابعة عاجلة لضمان تطوير المهارات.</p>`;
+                    }
+                    const maternityLeaveDepts = departments.filter(d => d.absences['إجازة وضع'] > 0);
+                    if (maternityLeaveDepts.length > 0) {
+                        hrInsights += `<p class="mb-2"><strong>ملاحظة (إجازة وضع):</strong> يوجد موظفات في إجازة وضع في إدارات: ${maternityLeaveDepts.map(d => d.name).join(', ')}. يوصى بالتخطيط لتغطية مهامهن.</p>`;
+                    }
+                     if (!hrInsights) {
+                        hrInsights = '<p class="text-gray-500">لا توجد رؤى أو تنبيهات ذكاء اصطناعي حالياً بناءً على بيانات الموارد البشرية.</p>';
+                    }
+                    return hrInsights;
+
+                default:
+                    return "لا توجد رؤى متاحة لهذا الموديول.";
+            }
+        };
+
+        // Function to render a Card component (simplified HTML version)
+        function renderCard(title, contentHtml, iconSvg, iconColor) {
+            return `
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                    <div class="flex flex-row items-center justify-between space-y-0 pb-2 p-6">
+                        <h3 class="text-sm font-medium text-gray-600">${title}</h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" class="h-4 w-4 ${iconColor}">
+                            ${iconSvg}
+                        </svg>
+                    </div>
+                    <div class="p-6 pt-0">
+                        ${contentHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Function to render a Table component (simplified HTML version)
+        function renderTable(headers, rows, rowClassFn = null) {
+            let tableHtml = `
+                <div class="relative w-full overflow-auto">
+                    <table class="w-full caption-bottom text-sm">
+                        <thead class="[&_tr]:border-b">
+                            <tr>
+                                ${headers.map(header => `<th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">${header}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody class="[&_tr:last-child]:border-0">
+            `;
+            rows.forEach(row => {
+                const rowClass = rowClassFn ? rowClassFn(row.rawData) : '';
+                tableHtml += `<tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted ${rowClass}" data-row-id="${row.id}">`;
+                row.cells.forEach(cell => {
+                    tableHtml += `<td class="p-4 align-middle [&:has([role=checkbox])]:pr-0">${cell}</td>`;
+                });
+                tableHtml += `</tr>`;
+            });
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            return tableHtml;
+        }
+
+
+        // Function to render Radial Progress Bar
+        function renderRadialProgressBar(percentage, colorClass, label) {
+            const radius = 40;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (percentage / 100) * circumference;
+            return `
+                <div class="flex flex-col items-center justify-center p-2 radial-progress-bar">
+                    <svg class="w-24 h-24">
+                        <circle
+                            class="text-gray-300"
+                            stroke-width="8"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="${radius}"
+                            cx="50%"
+                            cy="50%"
+                        />
+                        <circle
+                            class="${colorClass}"
+                            stroke-width="8"
+                            stroke-dasharray="${circumference}"
+                            stroke-dashoffset="${offset}"
+                            stroke-linecap="round"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="${radius}"
+                            cx="50%"
+                            cy="50%"
+                        />
+                    </svg>
+                    <div class="relative -mt-16 text-xl font-bold text-gray-800">
+                        ${percentage}%
+                    </div>
+                    <div class="text-sm text-gray-600 mt-2">${label}</div>
+                </div>
+            `;
+        }
+
+        // Drill Down Dialog functions
+        function openDrillDownDialog(title, data) {
+            const dialog = document.getElementById('drill-down-dialog');
+            const dialogTitle = document.getElementById('drill-down-title');
+            const dialogContent = document.getElementById('drill-down-content');
+            let content = ''; // Initialize content here
+
+            dialogTitle.textContent = title;
+            if (data) {
+                if (data.chapterId) { // Check if it's a finance transaction
+                    content = `<p class="mb-2"><strong>الباب:</strong> ${data.chapterName}</p>`;
+                    content += `<p class="mb-2"><strong>الجهة:</strong> ${data.entity}</p>`;
+                    content += `<p class="mb-2"><strong>الشهر:</strong> ${data.month}</p>`;
+                    content += `<p class="mb-2"><strong>الربع المالي:</strong> ${data.quarter}</p>`;
+                    content += `<p class="mb-2"><strong>نوع المشروع:</strong> ${data.projectType}</p>`;
+                    content += `<p class="mb-2"><strong>المبلغ:</strong> ${formatCurrency(data.amount)}</p>`;
+                    content += `<p class="mb-2"><strong>الوصف:</strong> ${data.description}</p>`;
+                } else if (data.name && data.completionPercentage !== undefined) { // Check if it's a project
+                    content = `<p class="mb-2"><strong>اسم المشروع:</strong> ${data.name}</p>`;
+                    content += `<p class="mb-2"><strong>الجهة المنفذة:</strong> ${data.entity}</p>`;
+                    content += `<p class="mb-2"><strong>نوع المشروع:</strong> ${data.type}</p>`;
+                    content += `<p class="mb-2"><strong>تاريخ البدء:</strong> ${data.startDate}</p>`;
+                    content += `<p class="mb-2"><strong>تاريخ النهاية:</strong> ${data.endDate}</p>`;
+                    content += `<p class="mb-2"><strong>المرحلة الحالية:</strong> ${data.currentStage}</p>`;
+                    content += `<p class="mb-2"><strong>نسبة الإنجاز:</strong> ${data.completionPercentage}%</p>`;
+                    content += `<p class="mb-2"><strong>الموازنة المعتمدة:</strong> ${formatCurrency(data.budgetApproved)}</p>`;
+                    content += `<p class="mb-2"><strong>المنصرف الفعلي:</strong> ${formatCurrency(data.actualSpent)}</p>`;
+                    content += `<p class="mb-2"><strong>الفجوة المالية:</strong> ${formatCurrency(data.budgetApproved - data.actualSpent)}</p>`;
+                    content += `<p class="mb-2"><strong>عدد المعوقات:</strong> ${data.obstaclesCount}</p>`;
+                } else if (data.detailedItems && data.dispatchOrders) { // Check if it's a warehouse
+                    content = `<p class="mb-2"><strong>اسم المخزن:</strong> ${data.name}</p>`;
+                    content += `<p class="mb-2"><strong>نوع المخزن:</strong> ${data.type}</p>`;
+                    content += `<p class="mb-2"><strong>عدد الأصناف:</strong> ${data.itemCount}</p>`;
+                    content += `<p class="mb-2"><strong>الرصيد المالي:</strong> ${formatCurrency(data.currentBalance)}</p>`;
+                    content += `<p class="mb-2"><strong>الأصناف المنتهية:</strong> ${data.expiredItemsCount}</p>`;
+                    content += `<p class="mb-2"><strong>أوامر الصرف المفتوحة:</strong> ${data.openDispatchOrders}</p>`;
+                    content += `<p class="mb-2"><strong>أوامر الاستلام المعلقة:</strong> ${data.pendingReceiptOrders}</p>`;
+                    content += `<p class="mb-2"><strong>نسبة الدوران:</strong> ${(data.turnoverRate * 100).toFixed(1)}%</p>`;
+                    content += `<p class="mb-2"><strong>تاريخ آخر جرد:</strong> ${data.lastInventoryDate}</p>`;
+                    content += `<p class="mb-2"><strong>ملاحظات:</strong> ${data.notes}</p>`;
+                    content += `<p class="mb-4"><strong>عدد الأصناف الراكدة:</strong> ${data.stagnantItemsCount}</p>`;
+
+                    if (data.detailedItems && data.detailedItems.length > 0) {
+                        content += `<h4 class="text-md font-semibold mb-2">تفاصيل الأصناف:</h4>`;
+                        content += renderTable(
+                            ['معرف الصنف', 'اسم الصنف', 'الكمية', 'القيمة', 'الحالة'],
+                            data.detailedItems.map(item => ({ id: item.itemId, cells: [item.itemId, item.itemName, item.quantity, formatCurrency(item.value), item.status] }))
+                        );
+                    }
+                } else if (data.operationNumber) { // Check if it's a procurement operation
+                     content = `<p class="mb-2"><strong>رقم العملية:</strong> ${data.operationNumber}</p>`;
+                     content += `<p class="mb-2"><strong>نوع العملية:</strong> ${data.operationType}</p>`;
+                     content += `<p class="mb-2"><strong>الجهة الطالبة:</strong> ${data.requestingEntity}</p>`;
+                     content += `<p class="mb-2"><strong>القيمة التقديرية:</strong> ${formatCurrency(data.estimatedValue)}</p>`;
+                     content += `<p class="mb-2"><strong>قيمة الترسية:</strong> ${data.awardedValue > 0 ? formatCurrency(data.awardedValue) : 'N/A'}</p>`;
+                     content += `<p class="mb-2"><strong>حالة التوريد:</strong> ${data.supplyStatus}</p>`;
+                     content += `<p class="mb-2"><strong>حالة العقد:</strong> ${data.contractStatus}</p>`;
+                     content += `<p class="mb-2"><strong>حالة الدفع:</strong> ${data.paymentStatus}</p>`;
+                     content += `<p class="mb-2"><strong>عدد الموردين المشاركين:</strong> ${data.participatingSuppliers}</p>`;
+                     content += `<p class="mb-2"><strong>المورد الفائز:</strong> ${data.supplierName || 'N/A'}</p>`;
+                     content += `<p class="mb-2"><strong>تاريخ الفتح الفني:</strong> ${data.technicalOpeningDate}</p>`;
+                     content += `<p class="mb-2"><strong>تاريخ الترسية:</strong> ${data.awardDate || 'N/A'}</p>`;
+                     content += `<p class="mb-2"><strong>ملاحظات أو اعتراضات:</strong> ${data.objections || 'لا يوجد'}</p>`;
+                } else if (data.jobLevels) { // Check if it's an HR department
+                    content = `
+                        <h4 class="text-md font-semibold mb-2">توزيع المستويات الوظيفية:</h4>
+                        <ul class="list-disc list-inside mb-4">
+                            ${Object.entries(data.jobLevels).map(([level, count]) => `<li><strong>${level}:</strong> ${count} موظف</li>`).join('')}
+                        </ul>
+                        <h4 class="text-md font-semibold mb-2">تفاصيل الغياب:</h4>
+                        <ul class="list-disc list-inside mb-4">
+                             ${Object.entries(data.absences).map(([type, count]) => `<li><strong>${type}:</strong> ${count} يوم</li>`).join('')}
+                        </ul>
+                        <p class="mb-2"><strong>نسبة التأخير:</strong> ${data.delayPercentage}%</p>
+                        <p class="mb-2"><strong>نسبة إنجاز المهام:</strong> ${data.taskCompletionRate}%</p>
+                    `;
+                } else if (Array.isArray(data)) { // For generic table drill-down
+                    const headers = Object.keys(data[0]);
+                    const rows = data.map(item => ({ cells: Object.values(item) }));
+                    content = renderTable(headers, rows);
+                }
+            } else {
+                content = '<p class="text-center text-gray-500">لا توجد بيانات تفصيلية متاحة.</p>';
+            }
+            dialogContent.innerHTML = content;
+            dialog.classList.remove('hidden');
+        }
+
+        function closeDrillDownDialog() {
+            document.getElementById('drill-down-dialog').classList.add('hidden');
+        }
+
+        // --- Finance Dashboard (Government Institution Finance) ---
+        var currentFilteredTransactionsFinance = mockData.finance.detailedTransactions; // For finance table filtering
+
+        function renderFinanceDashboardContent() {
+            const container = document.getElementById('finance-dashboard');
+            // Calculate derived data for chapters
+            mockData.finance.chapters.forEach(chapter => {
+                chapter.executionPercentage = (chapter.actualSpent / chapter.originalAllocation) * 100;
+                chapter.difference = chapter.originalAllocation - chapter.actualSpent;
+                chapter.remaining = chapter.originalAllocation - chapter.actualSpent;
+
+                if (chapter.executionPercentage < 50) {
+                    chapter.notes = 'نسبة تنفيذ منخفضة';
+                } else if (chapter.executionPercentage > 95 && chapter.id === 'chap1') {
+                    chapter.notes = 'اقتراب من تجاوز الاعتماد';
+                } else if (chapter.executionPercentage < 75 && chapter.id === 'chap2') { // New condition for Moshterayat
+                    chapter.notes = 'نسبة تنفيذ منخفضة';
+                }
+                else if (chapter.executionPercentage >= 100 && chapter.id === 'chap4') {
+                    chapter.notes = 'تم الصرف بالكامل';
+                } else {
+                    chapter.notes = 'لا توجد ملاحظات';
+                }
+            });
+
+            // Calculate KPIs
+            const totalAllocation = mockData.finance.chapters.reduce((sum, c) => sum + c.originalAllocation, 0);
+            const totalSpent = mockData.finance.chapters.reduce((sum, c) => sum + c.actualSpent, 0);
+
+            const highestExecutionChapter = mockData.finance.chapters.reduce((prev, current) =>
+                (prev.executionPercentage > current.executionPercentage) ? prev : current
+            );
+            const lowestExecutionChapter = mockData.finance.chapters.reduce((prev, current) =>
+                (prev.executionPercentage < current.executionPercentage) ? prev : current
+            );
+
+            container.innerHTML = `
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">المالية (موازنة المؤسسة)</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-6">
+                        <h3 class="text-sm font-medium text-gray-600 mb-2">إجمالي الاعتماد الأصلي</h3>
+                        <div id="kpi-total-allocation" class="text-2xl font-bold text-blue-600">${formatCurrency(totalAllocation)}</div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-6">
+                        <h3 class="text-sm font-medium text-gray-600 mb-2">إجمالي المنصرف الفعلي</h3>
+                        <div id="kpi-total-spent" class="text-2xl font-bold text-green-600">${formatCurrency(totalSpent)}</div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-6">
+                        <h3 class="text-sm font-medium text-gray-600 mb-2">أعلى باب تنفيذًا</h3>
+                        <div id="kpi-highest-execution" class="text-xl font-bold text-purple-600">${highestExecutionChapter.name} <br> (${highestExecutionChapter.executionPercentage.toFixed(1)}%)</div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl p-6">
+                        <h3 class="text-sm font-medium text-gray-600 mb-2">أقل باب تنفيذًا</h3>
+                        <div id="kpi-lowest-execution" class="text-xl font-bold text-red-600">${lowestExecutionChapter.name} <br> (${lowestExecutionChapter.executionPercentage.toFixed(1)}%)</div>
+                    </div>
+                </div>
+
+                <!-- Filters Section -->
+                <div class="bg-white shadow-md p-6 mb-6 rounded-lg flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4 md:space-x-reverse">
+                    <h3 class="text-lg font-semibold text-gray-800">الفلاتر:</h3>
+                    <select id="filter-entity" class="filter-dropdown">
+                        <option value="">كل الجهات</option>
+                    </select>
+                    <select id="filter-chapter" class="filter-dropdown">
+                        <option value="">كل الأبواب</option>
+                    </select>
+                    <select id="filter-month" class="filter-dropdown">
+                        <option value="">كل الأشهر</option>
+                    </select>
+                    <select id="filter-quarter" class="filter-dropdown">
+                        <option value="">كل الأرباع</option>
+                    </select>
+                    <select id="filter-project-type" class="filter-dropdown">
+                        <option value="">كل أنواع المشاريع</option>
+                    </select>
+                    <button id="apply-filters-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        تطبيق الفلاتر
+                    </button>
+                </div>
+
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">المعتمد والمنصرف والمتبقي لكل باب</h3></div>
+                        <div class="p-6 pt-0"><canvas id="finance-bar-chart-chapters"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع إجمالي الموازنة على الأبواب</h3></div>
+                        <div class="p-6 pt-0"><canvas id="finance-pie-chart-budget-distribution"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Detailed Table Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">البيانات التفصيلية للموازنة</h3></div>
+                    <div class="p-6 pt-0">
+                        <div id="finance-detailed-transactions-table-container">
+                            <!-- Table will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-row items-center justify-between p-6">
+                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <button id="finance-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            توليد رؤى الذكاء الاصطناعي
+                        </button>
+                    </div>
+                    <div id="finance-ai-insights-content" class="p-6 pt-0">
+                        <p class="text-gray-500">انقر على "توليد رؤى الذكاء الاصطناعي" للحصول على تحليل وتوصيات.</p>
+                    </div>
+                </div>
+            `;
+            // Attach AI insights button event listener
+            document.getElementById('finance-ai-insights-btn').onclick = async () => {
+                const btn = document.getElementById('finance-ai-insights-btn');
+                btn.textContent = 'جاري التحليل...';
+                btn.disabled = true;
+                const insights = await getAIInsights('finance');
+                document.getElementById('finance-ai-insights-content').innerHTML = `<div class="bg-blue-50 border-r-4 border-blue-500 text-blue-800 p-4 rounded-md">${insights}</div>`;
+                btn.textContent = 'توليد رؤى الذكاء الاصطناعي';
+                btn.disabled = false;
+            };
+
+            // Populate filters
+            populateFinanceFilters();
+            // Attach filter button event listener
+            document.getElementById('apply-filters-btn').addEventListener('click', applyFinanceFilters);
+        }
+
+        // Function to render Finance Charts (Government Finance)
+        function renderFinanceCharts() {
+            // Destroy existing charts if any
+            if (chartInstances['finance-bar-chart-chapters']) chartInstances['finance-bar-chart-chapters'].destroy();
+            if (chartInstances['finance-pie-chart-budget-distribution']) chartInstances['finance-pie-chart-budget-distribution'].destroy();
+
+            const barCtx = document.getElementById('finance-bar-chart-chapters').getContext('2d');
+            chartInstances['finance-bar-chart-chapters'] = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: mockData.finance.chapters.map(c => c.name),
+                    datasets: [
+                        {
+                            label: 'الاعتماد الأصلي',
+                            data: mockData.finance.chapters.map(c => c.originalAllocation),
+                            backgroundColor: '#3b82f6', // blue-500
+                        },
+                        {
+                            label: 'المنصرف الفعلي',
+                            data: mockData.finance.chapters.map(c => c.actualSpent),
+                            backgroundColor: '#22c55e', // green-500
+                        },
+                        {
+                            label: 'المتبقي',
+                            data: mockData.finance.chapters.map(c => c.remaining),
+                            backgroundColor: '#f59e0b', // amber-500
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: false,
+                        },
+                        y: {
+                            stacked: false,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const pieCtx = document.getElementById('finance-pie-chart-budget-distribution').getContext('2d');
+            chartInstances['finance-pie-chart-budget-distribution'] = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: mockData.finance.chapters.map(c => c.name),
+                    datasets: [{
+                        data: mockData.finance.chapters.map(c => c.originalAllocation),
+                        backgroundColor: [
+                            '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#8A2BE2', '#DEB887', '#6A5ACD'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += formatCurrency(context.raw);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            renderFinanceDetailedTable(); // Render table after charts
+        }
+
+        // Populate Filter Dropdowns for Finance Module
+        function populateFinanceFilters() {
+            // Only include 'المؤسسة' as the entity
+            const entities = [...new Set(mockData.finance.detailedTransactions.map(t => t.entity))];
+            const chapters = mockData.finance.chapters.map(c => ({ id: c.id, name: c.name }));
+            const months = [...new Set(mockData.finance.detailedTransactions.map(t => t.month))];
+            const quarters = [...new Set(mockData.finance.detailedTransactions.map(t => t.quarter))];
+            const projectTypes = [...new Set(mockData.finance.detailedTransactions.map(t => t.projectType))];
+
+            const filterEntity = document.getElementById('filter-entity');
+            filterEntity.innerHTML = '<option value="">كل الجهات</option>';
+            entities.forEach(e => {
+                const option = document.createElement('option');
+                option.value = e;
+                option.textContent = e;
+                filterEntity.appendChild(option);
+            });
+
+            const filterChapter = document.getElementById('filter-chapter');
+            filterChapter.innerHTML = '<option value="">كل الأبواب</option>';
+            chapters.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.name;
+                filterChapter.appendChild(option);
+            });
+
+            const filterMonth = document.getElementById('filter-month');
+            filterMonth.innerHTML = '<option value="">كل الأشهر</option>';
+            months.forEach(m => {
+                const option = document.createElement('option');
+                option.value = m;
+                option.textContent = m;
+                filterMonth.appendChild(option);
+            });
+
+            const filterQuarter = document.getElementById('filter-quarter');
+            filterQuarter.innerHTML = '<option value="">كل الأرباع</option>';
+            quarters.forEach(q => {
+                const option = document.createElement('option');
+                option.value = q;
+                option.textContent = q;
+                filterQuarter.appendChild(option);
+            });
+
+            const filterProjectType = document.getElementById('filter-project-type');
+            filterProjectType.innerHTML = '<option value="">كل أنواع المشاريع</option>';
+            projectTypes.forEach(pt => {
+                const option = document.createElement('option');
+                option.value = pt;
+                option.textContent = pt;
+                filterProjectType.appendChild(option);
+            });
+        }
+
+        // Apply Filters Logic for Finance Module
+        function applyFinanceFilters() {
+            const selectedEntity = document.getElementById('filter-entity').value;
+            const selectedChapter = document.getElementById('filter-chapter').value;
+            const selectedMonth = document.getElementById('filter-month').value;
+            const selectedQuarter = document.getElementById('filter-quarter').value;
+            const selectedProjectType = document.getElementById('filter-project-type').value;
+
+            currentFilteredTransactionsFinance = mockData.finance.detailedTransactions.filter(t => {
+                let match = true;
+                if (selectedEntity && t.entity !== selectedEntity) match = false;
+                if (selectedChapter && t.chapterId !== selectedChapter) match = false;
+                if (selectedMonth && t.month !== selectedMonth) match = false;
+                if (selectedQuarter && t.quarter !== selectedQuarter) match = false;
+                if (selectedProjectType && t.projectType !== selectedProjectType) match = false;
+                return match;
+            });
+            renderFinanceDetailedTable();
+        }
+
+        // Function to render Detailed Filterable Table for Finance Module
+        function renderFinanceDetailedTable() {
+            const tableContainer = document.getElementById('finance-detailed-transactions-table-container');
+            // Removed 'الجهة' from headers
+            const headers = ['الباب', 'الشهر', 'الربع المالي', 'نوع المشروع', 'المبلغ', 'الوصف', 'تفاصيل'];
+            const rows = currentFilteredTransactionsFinance.map(t => { // Use currentFilteredTransactionsFinance
+                const chapterName = mockData.finance.chapters.find(c => c.id === t.chapterId)?.name || t.chapterId;
+                return {
+                    id: t.id,
+                    cells: [
+                        chapterName,
+                        t.month,
+                        t.quarter,
+                        t.projectType,
+                        formatCurrency(t.amount),
+                        t.description,
+                        `<button class="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded" onclick="handleFinanceDrillDown('${t.id}')">عرض</button>`
+                    ]
+                };
+            });
+
+            if (rows.length > 0) {
+                tableContainer.innerHTML = renderTable(headers, rows.map(row => ({...row, rawData: null})));
+            } else {
+                tableContainer.innerHTML = '<p class="text-center text-gray-500">لا توجد معاملات مطابقة للفلاتر المحددة.</p>';
+            }
+        }
+
+        // Drill-down handler for finance table rows
+        function handleFinanceDrillDown(transactionId) {
+            const transaction = mockData.finance.detailedTransactions.find(t => t.id === transactionId);
+            if (transaction) {
+                const chapterName = mockData.finance.chapters.find(c => c.id === transaction.chapterId)?.name || transaction.chapterId;
+                openDrillDownDialog('تفاصيل المعاملة', { ...transaction, chapterName });
+            }
+        }
+
+
+        // --- Strategy & Projects Dashboard ---
+        var currentFilteredProjectsStrategy = mockData.strategyProjects.projects; // For projects table filtering
+
+        function renderStrategyProjectsDashboardContent() {
+            const container = document.getElementById('strategyProjects-dashboard');
+
+            // Calculate KPIs for Strategy & Projects
+            const projects = currentFilteredProjectsStrategy;
+            const totalProjects = projects.length;
+            const avgCompletion = totalProjects > 0 ? (projects.reduce((sum, p) => sum + p.completionPercentage, 0) / totalProjects).toFixed(1) : 0;
+            const projectsOver80 = projects.filter(p => p.completionPercentage >= 80).length;
+            const totalObstacles = projects.reduce((sum, p) => sum + p.obstaclesCount, 0);
+            const totalBudget = projects.reduce((sum, p) => sum + p.budgetApproved, 0);
+            const totalSpent = projects.reduce((sum, p) => sum + p.actualSpent, 0);
+            const spendingRatio = totalBudget > 0 ? (totalSpent / totalBudget * 100).toFixed(1) : 0;
+
+            let highestBudgetProject = null;
+            if (totalProjects > 0) {
+                highestBudgetProject = projects.reduce((prev, current) =>
+                    (prev.budgetApproved > current.budgetApproved) ? prev : current
+                );
+            }
+
+            let mostCommonProjectType = 'لا يوجد';
+            if (totalProjects > 0) {
+                const projectTypesCount = projects.reduce((acc, p) => {
+                    acc[p.type] = (acc[p.type] || 0) + 1;
+                    return acc;
+                }, {});
+                mostCommonProjectType = Object.keys(projectTypesCount).reduce((a, b) => projectTypesCount[a] > projectTypesCount[b] ? a : b);
+            }
+
+
+            container.innerHTML = `
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">إدارة الاستراتيجية والمشروعات</h2>
+
+                <!-- Filters Section -->
+                <div class="bg-white shadow-md p-6 mb-6 rounded-lg flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4 md:space-x-reverse">
+                    <h3 class="text-lg font-semibold text-gray-800">الفلاتر:</h3>
+                    <select id="proj-filter-month" class="filter-dropdown">
+                        <option value="">كل الأشهر</option>
+                    </select>
+                    <select id="proj-filter-entity" class="filter-dropdown">
+                        <option value="">كل الجهات</option>
+                    </select>
+                    <select id="proj-filter-type" class="filter-dropdown">
+                        <option value="">كل أنواع المشاريع</option>
+                    </select>
+                    <select id="proj-filter-stage" class="filter-dropdown">
+                        <option value="">كل المراحل</option>
+                    </select>
+                    <button id="apply-proj-filters-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        تطبيق الفلاتر
+                    </button>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    ${renderCard(
+                        'إجمالي عدد المشاريع الحالية',
+                        `<div class="text-2xl font-bold">${totalProjects}</div><p class="text-xs text-gray-500">مشروع</p>`,
+                        '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />',
+                        'text-purple-500'
+                    )}
+                    ${renderCard(
+                        'متوسط نسبة الإنجاز',
+                        `<div class="text-2xl font-bold">${avgCompletion}%</div><p class="text-xs text-gray-500">على مستوى الإدارة</p>`,
+                        '<path d="M22 12h-4l-3 9L9 3l-3 9H2" />',
+                        'text-blue-500'
+                    )}
+                    ${renderCard(
+                        'مشاريع تجاوزت 80%',
+                        `<div class="text-2xl font-bold">${projectsOver80}</div><p class="text-xs text-gray-500">مشروع من أصل ${totalProjects}</p>`,
+                        '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />',
+                        'text-green-500'
+                    )}
+                    ${renderCard(
+                        'إجمالي المعوقات المسجلة',
+                        `<div class="text-2xl font-bold">${totalObstacles}</div><p class="text-xs text-gray-500">معوق على المشاريع</p>`,
+                        '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />',
+                        'text-orange-500'
+                    )}
+                    ${renderCard(
+                        'نسبة الإنفاق الكلية',
+                        `<div class="text-2xl font-bold">${spendingRatio}%</div><p class="text-xs text-gray-500">من إجمالي الموازنة</p>`,
+                        '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />',
+                        'text-cyan-500'
+                    )}
+                     ${renderCard(
+                        'أعلى مشروع موازنة',
+                        `<div class="text-xl font-bold">${highestBudgetProject ? highestBudgetProject.name : 'لا يوجد'}</div><p class="text-xs text-gray-500">${highestBudgetProject ? formatCurrency(highestBudgetProject.budgetApproved) : ''}</p>`,
+                        '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />',
+                        'text-indigo-500'
+                    )}
+                    ${renderCard(
+                        'أكثر نوع مشروع تنفيذًا',
+                        `<div class="text-xl font-bold">${mostCommonProjectType}</div><p class="text-xs text-gray-500"></p>`,
+                        '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />',
+                        'text-teal-500'
+                    )}
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">الموازنة المعتمدة / المنصرف / المتبقي لكل مشروع</h3></div>
+                        <div class="p-6 pt-0"><canvas id="strategyProjects-bar-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع المشاريع حسب نوعها</h3></div>
+                        <div class="p-6 pt-0"><canvas id="strategyProjects-pie-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">تطور نسبة الإنجاز بمرور الوقت</h3></div>
+                        <div class="p-6 pt-0"><canvas id="strategyProjects-line-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Detailed Table Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">قائمة المشاريع قيد التنفيذ</h3></div>
+                    <div class="p-6 pt-0">
+                        <div id="strategyProjects-detailed-table-container">
+                            <!-- Table will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-row items-center justify-between p-6">
+                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <button id="strategyProjects-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            توليد رؤى الذكاء الاصطناعي
+                        </button>
+                    </div>
+                    <div id="strategyProjects-ai-insights-content" class="p-6 pt-0">
+                        <p class="text-gray-500">انقر على "توليد رؤى الذكاء الاصطناعي" للحصول على تحليل وتوصيات.</p>
+                    </div>
+                </div>
+
+                <div class="mb-8 p-4 bg-yellow-50 border-r-4 border-yellow-500 text-yellow-800 rounded-md">
+                    <h3 class="font-semibold mb-2">ربط بين الموديولات:</h3>
+                    <p class="mb-2">مراقبة التكاليف الفعلية للمشاريع.</p>
+                    <button onclick="navigateToModule('finance')" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        عرض لوحة المالية
+                    </button>
+                </div>
+            `;
+            // Attach AI insights button event listener
+            document.getElementById('strategyProjects-ai-insights-btn').onclick = async () => {
+                const btn = document.getElementById('strategyProjects-ai-insights-btn');
+                btn.textContent = 'جاري التحليل...';
+                btn.disabled = true;
+                const insights = await getAIInsights('strategyProjects');
+                document.getElementById('strategyProjects-ai-insights-content').innerHTML = `<div class="bg-blue-50 border-r-4 border-blue-500 text-blue-800 p-4 rounded-md">${insights}</div>`;
+                btn.textContent = 'توليد رؤى الذكاء الاصطناعي';
+                btn.disabled = false;
+            };
+
+            // Populate filters and attach event listener
+            populateStrategyProjectsFilters();
+            document.getElementById('apply-proj-filters-btn').addEventListener('click', applyStrategyProjectsFilters);
+        }
+
+        // Function to get color class for project table row based on completion and obstacles
+        function getProjectRowColorClass(project) {
+            if (project.obstaclesCount > 0 || project.completionPercentage < 60) return 'bg-red-500';
+            if (project.completionPercentage >= 90) return 'bg-green-500';
+            if (project.completionPercentage >= 60 && project.completionPercentage < 90) return 'bg-yellow-500';
+            return ''; // Default
+        }
+
+        // Filtered projects for Strategy & Projects
+        var currentFilteredProjectsStrategy = mockData.strategyProjects.projects; // Corrected variable name
+
+        // Populate Filter Dropdowns for Strategy & Projects Module
+        function populateStrategyProjectsFilters() {
+            const projects = mockData.strategyProjects.projects;
+            const months = [...new Set(projects.map(p => p.month))].sort((a, b) => {
+                const monthsOrder = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+                return monthsOrder.indexOf(a) - monthsOrder.indexOf(b);
+            }); // Sort months
+            const entities = [...new Set(projects.map(p => p.entity))];
+            const types = [...new Set(projects.map(p => p.type))];
+            const stages = [...new Set(projects.map(p => p.currentStage))];
+
+            const filterMonth = document.getElementById('proj-filter-month');
+            filterMonth.innerHTML = '<option value="">كل الأشهر</option>';
+            months.forEach(m => {
+                const option = document.createElement('option');
+                option.value = m;
+                option.textContent = m;
+                filterMonth.appendChild(option);
+            });
+
+            const filterEntity = document.getElementById('proj-filter-entity');
+            filterEntity.innerHTML = '<option value="">كل الجهات</option>';
+            entities.forEach(e => {
+                const option = document.createElement('option');
+                option.value = e;
+                option.textContent = e;
+                filterEntity.appendChild(option);
+            });
+
+            const filterType = document.getElementById('proj-filter-type');
+            filterType.innerHTML = '<option value="">كل أنواع المشاريع</option>';
+            types.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t;
+                option.textContent = t;
+                filterType.appendChild(option);
+            });
+
+            const filterStage = document.getElementById('proj-filter-stage');
+            filterStage.innerHTML = '<option value="">كل المراحل</option>';
+            stages.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s;
+                option.textContent = s;
+                filterStage.appendChild(option);
+            });
+        }
+
+        // Apply Filters Logic for Strategy & Projects Module
+        function applyStrategyProjectsFilters() {
+            const selectedMonth = document.getElementById('proj-filter-month').value;
+            const selectedEntity = document.getElementById('proj-filter-entity').value;
+            const selectedType = document.getElementById('proj-filter-type').value;
+            const selectedStage = document.getElementById('proj-filter-stage').value;
+
+            currentFilteredProjectsStrategy = mockData.strategyProjects.projects.filter(p => { // Corrected variable name
+                let match = true;
+                if (selectedMonth && p.month !== selectedMonth) match = false;
+                if (selectedEntity && p.entity !== selectedEntity) match = false;
+                if (selectedType && p.type !== selectedType) match = false;
+                if (selectedStage && p.currentStage !== selectedStage) match = false;
+                return match;
+            });
+            renderStrategyProjectsCharts(); // Re-render charts with filtered data
+            renderStrategyProjectsDetailedTable(); // Re-render table with filtered data
+        }
+
+        function renderStrategyProjectsCharts() {
+            if (chartInstances['strategyProjects-bar-chart']) chartInstances['strategyProjects-bar-chart'].destroy();
+            if (chartInstances['strategyProjects-pie-chart']) chartInstances['strategyProjects-pie-chart'].destroy();
+            if (chartInstances['strategyProjects-line-chart']) chartInstances['strategyProjects-line-chart'].destroy();
+
+            // Bar Chart: الموازنة المعتمدة / المنصرف / المتبقي
+            const barCtx = document.getElementById('strategyProjects-bar-chart').getContext('2d');
+            chartInstances['strategyProjects-bar-chart'] = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: currentFilteredProjectsStrategy.map(p => p.name), // Corrected variable name
+                    datasets: [
+                        {
+                            label: 'الموازنة المعتمدة',
+                            data: currentFilteredProjectsStrategy.map(p => p.budgetApproved), // Corrected variable name
+                            backgroundColor: '#3b82f6', // blue-500
+                        },
+                        {
+                            label: 'المنصرف الفعلي',
+                            data: currentFilteredProjectsStrategy.map(p => p.actualSpent), // Corrected variable name
+                            backgroundColor: '#22c55e', // green-500
+                        },
+                        {
+                            label: 'المتبقي',
+                            data: currentFilteredProjectsStrategy.map(p => p.budgetApproved - p.actualSpent), // Corrected variable name
+                            backgroundColor: '#f59e0b', // amber-500
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: false,
+                        },
+                        y: {
+                            stacked: false,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Pie Chart: توزيع المشاريع حسب نوعها
+            const pieCtx = document.getElementById('strategyProjects-pie-chart').getContext('2d');
+            const projectTypes = [...new Set(currentFilteredProjectsStrategy.map(p => p.type))]; // Corrected variable name
+            const typeCounts = projectTypes.map(type => currentFilteredProjectsStrategy.filter(p => p.type === type).length); // Corrected variable name
+
+            chartInstances['strategyProjects-pie-chart'] = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: projectTypes,
+                    datasets: [{
+                        data: typeCounts,
+                        backgroundColor: COLORS.slice(0, projectTypes.length),
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.raw;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Line Chart: تطور نسبة الإنجاز بمرور الوقت (simplified for demo)
+            // Group by month and calculate average completion
+            const monthlyCompletion = currentFilteredProjectsStrategy.reduce((acc, project) => { // Corrected variable name
+                const month = project.month; // Assuming 'month' field exists
+                if (!acc[month]) {
+                    acc[month] = { totalCompletion: 0, count: 0 };
+                }
+                acc[month].totalCompletion += project.completionPercentage;
+                acc[month].count++;
+                return acc;
+            }, {});
+
+            const sortedMonths = Object.keys(monthlyCompletion).sort((a, b) => {
+                const monthsOrder = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+                return monthsOrder.indexOf(a) - monthsOrder.indexOf(b);
+            });
+
+            const lineChartData = sortedMonths.map(month => ({
+                month: month,
+                avgCompletion: (monthlyCompletion[month].totalCompletion / monthlyCompletion[month].count).toFixed(1)
+            }));
+
+            const lineCtx = document.getElementById('strategyProjects-line-chart').getContext('2d');
+            chartInstances['strategyProjects-line-chart'] = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: lineChartData.map(d => d.month),
+                    datasets: [{
+                        label: 'متوسط نسبة الإنجاز (%)',
+                        data: lineChartData.map(d => d.avgCompletion),
+                        borderColor: '#FF8042',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            renderStrategyProjectsDetailedTable(); // Render table after charts
+        }
+
+        // Function to render Detailed Filterable Table for Strategy & Projects Module
+        function renderStrategyProjectsDetailedTable() {
+            const tableContainer = document.getElementById('strategyProjects-detailed-table-container');
+            const headers = ['اسم المشروع', 'الجهة المنفذة', 'نوع المشروع', 'تاريخ البدء', 'تاريخ النهاية', 'المرحلة', 'الإنجاز %', 'الموازنة', 'المنصرف', 'الفجوة', 'المعوقات', 'تفاصيل'];
+            const rows = currentFilteredProjectsStrategy.map(p => { // Corrected variable name
+                const financialGap = p.budgetApproved - p.actualSpent;
+                return {
+                    id: p.id,
+                    cells: [
+                        p.name,
+                        p.entity,
+                        p.type,
+                        p.startDate,
+                        p.endDate,
+                        p.currentStage,
+                        `<span class="block w-full h-full text-center py-2 ${getCompletionColor(p)}">${p.completionPercentage}%</span>`, // Apply color based on project object
+                        formatCurrency(p.budgetApproved),
+                        formatCurrency(p.actualSpent),
+                        formatCurrency(financialGap),
+                        p.obstaclesCount,
+                        `<button class="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded" onclick="handleProjectDrillDown('${p.id}')">عرض</button>`
+                    ]
+                };
+            });
+
+            if (rows.length > 0) {
+                tableContainer.innerHTML = renderTable(headers, rows.map(row => ({...row, rawData: null})));
+            } else {
+                tableContainer.innerHTML = '<p class="text-center text-gray-500">لا توجد مشاريع مطابقة للفلاتر المحددة.</p>';
+            }
+        }
+
+        // Drill-down handler for project table rows
+        function handleProjectDrillDown(projectId) {
+            const project = mockData.strategyProjects.projects.find(p => p.id === projectId);
+            if (project) {
+                // Pass the full project object to the drill-down dialog
+                openDrillDownDialog('تفاصيل المشروع', project);
+            }
+        }
+
+        // Function to get color based on completion percentage and obstacles for heatmap effect
+        function getCompletionColor(project) {
+            if (project.obstaclesCount > 0 || project.completionPercentage < 60) return 'bg-red-500';
+            if (project.completionPercentage >= 90) return 'bg-green-500';
+            if (project.completionPercentage >= 60 && project.completionPercentage < 90) return 'bg-yellow-500';
+            return ''; // Default (shouldn't be reached if conditions cover all cases)
+        }
+
+
+        // --- Inventory & Warehousing Dashboard ---
+        var currentFilteredWarehouses = mockData.inventoryWarehousing.warehouses; // For warehouse table filtering
+
+        function renderInventoryWarehousingDashboardContent() {
+            const container = document.getElementById('inventoryWarehousing-dashboard');
+
+            // Calculate KPIs for Inventory & Warehousing
+            const warehouses = currentFilteredWarehouses;
+            const totalItemCount = warehouses.reduce((sum, wh) => sum + wh.itemCount, 0);
+            const totalBalance = warehouses.reduce((sum, wh) => sum + wh.currentBalance, 0);
+            const totalOpenOrders = warehouses.reduce((sum, wh) => sum + wh.openDispatchOrders + wh.pendingReceiptOrders, 0);
+            const totalExpiredItems = warehouses.reduce((sum, wh) => sum + wh.expiredItemsCount, 0);
+            const totalStagnantItems = warehouses.reduce((sum, wh) => sum + wh.stagnantItemsCount, 0);
+
+            let highestTurnoverWarehouse = null;
+            if (warehouses.length > 0) {
+                highestTurnoverWarehouse = warehouses.reduce((prev, current) =>
+                    (prev.turnoverRate > current.turnoverRate) ? prev : current
+                );
+            }
+            let lowestTurnoverWarehouse = null;
+            if (warehouses.length > 0) {
+                lowestTurnoverWarehouse = warehouses.reduce((prev, current) =>
+                    (prev.turnoverRate < current.turnoverRate) ? prev : current
+                );
+            }
+
+
+            container.innerHTML = `
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">إدارة المخازن</h2>
+
+                <!-- Filters Section -->
+                <div class="bg-white shadow-md p-6 mb-6 rounded-lg flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4 md:space-x-reverse">
+                    <h3 class="text-lg font-semibold text-gray-800">الفلاتر:</h3>
+                    <select id="inv-filter-type" class="filter-dropdown">
+                        <option value="">كل الأنواع</option>
+                    </select>
+                    <select id="inv-filter-turnover" class="filter-dropdown">
+                        <option value="">نسبة الدوران</option>
+                        <option value="high">أكثر من 70%</option>
+                        <option value="medium">بين 50% و 70%</option>
+                        <option value="low">أقل من 50%</option>
+                    </select>
+                    <select id="inv-filter-inventoried" class="filter-dropdown">
+                        <option value="">حالة الجرد</option>
+                        <option value="true">جُرد</option>
+                        <option value="false">لم يُجرد</option>
+                    </select>
+                    <button id="apply-inv-filters-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        تطبيق الفلاتر
+                    </button>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    ${renderCard(
+                        'إجمالي الأصناف',
+                        `<div class="text-2xl font-bold">${totalItemCount}</div><p class="text-xs text-gray-500">صنف في جميع المخازن</p>`,
+                        '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />',
+                        'text-blue-500'
+                    )}
+                    ${renderCard(
+                        'إجمالي الرصيد المخزني',
+                        `<div class="text-2xl font-bold">${formatCurrency(totalBalance)}</div><p class="text-xs text-gray-500">قيمة المخزون الحالي</p>`,
+                        '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />',
+                        'text-green-500'
+                    )}
+                    ${renderCard(
+                        'أوامر الصرف والاستلام (مفتوحة/معلقة)',
+                        `<div class="text-2xl font-bold">${totalOpenOrders}</div><p class="text-xs text-gray-500">أمر</p>`,
+                        '<path d="M22 12h-4l-3 9L9 3l-3 9H2" />',
+                        'text-orange-500'
+                    )}
+                    ${renderCard(
+                        'عدد الأصناف المنتهية',
+                        `<div class="text-2xl font-bold">${totalExpiredItems}</div><p class="text-xs text-gray-500">صنف</p>`,
+                        '<path d="M18 6 6 18" /><path d="m6 6 12 12" />',
+                        'text-red-500'
+                    )}
+                    ${renderCard(
+                        'إجمالي الأصناف الراكدة',
+                        `<div class="text-2xl font-bold">${totalStagnantItems}</div><p class="text-xs text-gray-500">صنف راكد</p>`,
+                        '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />',
+                        'text-red-700'
+                    )}
+                    ${renderCard(
+                        'أعلى نسبة دوران مخزون',
+                        `<div class="text-xl font-bold">${highestTurnoverWarehouse ? `${highestTurnoverWarehouse.name} (${(highestTurnoverWarehouse.turnoverRate * 100).toFixed(1)}%)` : 'لا يوجد'}</div><p class="text-xs text-gray-500"></p>`,
+                        '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />',
+                        'text-purple-500'
+                    )}
+                     ${renderCard(
+                        'أقل نسبة دوران مخزون',
+                        `<div class="text-xl font-bold">${lowestTurnoverWarehouse ? `${lowestTurnoverWarehouse.name} (${(lowestTurnoverWarehouse.turnoverRate * 100).toFixed(1)}%)` : 'لا يوجد'}</div><p class="text-xs text-gray-500"></p>`,
+                        '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />',
+                        'text-pink-500'
+                    )}
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">الرصيد وعدد الأصناف حسب المخزن</h3></div>
+                        <div class="p-6 pt-0"><canvas id="inventory-balance-items-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع الأصناف المنتهية حسب المخزن</h3></div>
+                        <div class="p-6 pt-0"><canvas id="inventory-expired-items-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Detailed Table Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">تفاصيل المخازن</h3></div>
+                    <div class="p-6 pt-0">
+                        <div id="inventory-detailed-table-container">
+                            <!-- Table will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-row items-center justify-between p-6">
+                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <button id="inventory-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            توليد رؤى الذكاء الاصطناعي
+                        </button>
+                    </div>
+                    <div id="inventory-ai-insights-content" class="p-6 pt-0">
+                        <p class="text-gray-500">انقر على "توليد رؤى الذكاء الاصطناعي" للحصول على تحليل وتوصيات.</p>
+                    </div>
+                </div>
+            `;
+            // Attach AI insights button event listener
+            document.getElementById('inventory-ai-insights-btn').onclick = async () => {
+                const btn = document.getElementById('inventory-ai-insights-btn');
+                btn.textContent = 'جاري التحليل...';
+                btn.disabled = true;
+                const insights = await getAIInsights('inventoryWarehousing');
+                document.getElementById('inventory-ai-insights-content').innerHTML = `<div class="bg-blue-50 border-r-4 border-blue-500 text-blue-800 p-4 rounded-md">${insights}</div>`;
+                btn.textContent = 'توليد رؤى الذكاء الاصطناعي';
+                btn.disabled = false;
+            };
+
+            // Populate filters and attach event listener
+            populateInventoryWarehousingFilters();
+            document.getElementById('apply-inv-filters-btn').addEventListener('click', applyInventoryWarehousingFilters);
+        }
+
+        // Function to get color class for inventory table row based on turnover and stagnant items
+        function getInventoryRowColorClass(warehouse) {
+            if (warehouse.stagnantItemsCount > 15) return 'bg-red-500 text-white'; // More than 15 stagnant items
+            if (warehouse.turnoverRate < 0.50) return 'bg-red-100'; // Turnover less than 50%
+            if (warehouse.turnoverRate >= 0.50 && warehouse.turnoverRate < 0.70) return 'bg-yellow-100'; // Turnover between 50% and 70%
+            if (warehouse.turnoverRate >= 0.70) return 'bg-green-100'; // Turnover more than 70%
+            return ''; // Default
+        }
+
+        // Filtered warehouses for Inventory & Warehousing
+        var currentFilteredWarehouses = mockData.inventoryWarehousing.warehouses; // Corrected to var
+
+        // Populate Filter Dropdowns for Inventory & Warehousing Module
+        function populateInventoryWarehousingFilters() {
+            const warehouses = mockData.inventoryWarehousing.warehouses;
+            const types = [...new Set(warehouses.map(wh => wh.type))];
+            const inventoryStatuses = [...new Set(warehouses.map(wh => wh.isInventoried))];
+
+            const filterType = document.getElementById('inv-filter-type');
+            filterType.innerHTML = '<option value="">كل الأنواع</option>';
+            types.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t;
+                option.textContent = t;
+                filterType.appendChild(option);
+            });
+
+            const filterInventoried = document.getElementById('inv-filter-inventoried');
+            filterInventoried.innerHTML = '<option value="">حالة الجرد</option>';
+            inventoryStatuses.forEach(status => {
+                const option = document.createElement('option');
+                option.value = status;
+                option.textContent = status ? 'جُرد' : 'لم يُجرد';
+                filterInventoried.appendChild(option);
+            });
+        }
+
+        // Apply Filters Logic for Inventory & Warehousing Module
+        function applyInventoryWarehousingFilters() {
+            const selectedType = document.getElementById('inv-filter-type').value;
+            const selectedTurnover = document.getElementById('inv-filter-turnover').value;
+            const selectedInventoried = document.getElementById('inv-filter-inventoried').value;
+
+            currentFilteredWarehouses = mockData.inventoryWarehousing.warehouses.filter(wh => {
+                let match = true;
+                if (selectedType && wh.type !== selectedType) match = false;
+                if (selectedTurnover) {
+                    if (selectedTurnover === 'high' && wh.turnoverRate <= 0.70) match = false;
+                    if (selectedTurnover === 'medium' && (wh.turnoverRate < 0.50 || wh.turnoverRate >= 0.70)) match = false;
+                    if (selectedTurnover === 'low' && wh.turnoverRate >= 0.50) match = false;
+                }
+                if (selectedInventoried && wh.isInventoried.toString() !== selectedInventoried) match = false;
+                return match;
+            });
+            renderInventoryWarehousingCharts(); // Re-render charts with filtered data
+            renderInventoryWarehousingDetailedTable(); // Re-render table with filtered data
+        }
+
+        function renderInventoryWarehousingCharts() {
+            if (chartInstances['inventory-balance-items-chart']) chartInstances['inventory-balance-items-chart'].destroy();
+            if (chartInstances['inventory-expired-items-chart']) chartInstances['inventory-expired-items-chart'].destroy();
+
+            // Bar Chart: لكل مخزن يوضح الرصيد وعدد الأصناف
+            const barCtx = document.getElementById('inventory-balance-items-chart').getContext('2d');
+            chartInstances['inventory-balance-items-chart'] = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: currentFilteredWarehouses.map(wh => wh.name),
+                    datasets: [
+                        {
+                            label: 'الرصيد المالي',
+                            data: currentFilteredWarehouses.map(wh => wh.currentBalance),
+                            backgroundColor: '#0088FE',
+                            yAxisID: 'y-balance',
+                        },
+                        {
+                            label: 'عدد الأصناف',
+                            data: currentFilteredWarehouses.map(wh => wh.itemCount),
+                            backgroundColor: '#00C49F',
+                            yAxisID: 'y-items',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.label === 'الرصيد المالي') {
+                                        return context.dataset.label + ': ' + formatCurrency(context.raw);
+                                    }
+                                    return context.dataset.label + ': ' + context.raw;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        'y-balance': {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'الرصيد المالي'
+                            }
+                        },
+                        'y-items': {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: {
+                                drawOnChartArea: false, // only draw grid lines for the left axis
+                            },
+                            title: {
+                                display: true,
+                                text: 'عدد الأصناف'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Pie Chart: توزيع الأصناف المنتهية حسب المخازن
+            const pieCtx = document.getElementById('inventory-expired-items-chart').getContext('2d');
+            const expiredItemsData = currentFilteredWarehouses.map(wh => wh.expiredItemsCount);
+            const expiredItemsLabels = currentFilteredWarehouses.map(wh => wh.name);
+
+            chartInstances['inventory-expired-items-chart'] = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: expiredItemsLabels,
+                    datasets: [{
+                        data: expiredItemsData,
+                        backgroundColor: COLORS.slice(0, expiredItemsLabels.length),
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.raw;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            renderInventoryWarehousingDetailedTable(); // Render table after charts
+        }
+
+        // Function to render Detailed Filterable Table for Inventory & Warehousing Module
+        function renderInventoryWarehousingDetailedTable() {
+            const tableContainer = document.getElementById('inventory-detailed-table-container');
+            const headers = ['اسم المخزن', 'النوع', 'عدد الأصناف', 'الرصيد المالي', 'المنتهية', 'صرف مفتوح', 'استلام معلق', 'دوران (%)', 'آخر جرد', 'ملاحظات', 'حالة الجرد', 'تفاصيل'];
+            const rows = currentFilteredWarehouses.map(wh => {
+                return {
+                    id: wh.id,
+                    cells: [
+                        wh.name,
+                        wh.type,
+                        wh.itemCount,
+                        formatCurrency(wh.currentBalance),
+                        wh.expiredItemsCount,
+                        wh.openDispatchOrders,
+                        wh.pendingReceiptOrders,
+                        `<span class="block w-full h-full text-center py-2 ${getInventoryRowColorClass(wh)}">${(wh.turnoverRate * 100).toFixed(1)}%</span>`,
+                        wh.lastInventoryDate,
+                        wh.notes,
+                        wh.isInventoried ? 'جُرد' : 'لم يُجرد',
+                        `<button class="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded" onclick="handleWarehouseDrillDown('${wh.id}')">عرض</button>`
+                    ]
+                };
+            });
+
+            if (rows.length > 0) {
+                tableContainer.innerHTML = renderTable(headers, rows.map(row => ({...row, rawData: null})));
+            } else {
+                tableContainer.innerHTML = '<p class="text-center text-gray-500">لا توجد مخازن مطابقة للفلاتر المحددة.</p>';
+            }
+        }
+
+        // Drill-down handler for warehouse table rows
+        function handleWarehouseDrillDown(warehouseId) {
+            const warehouse = mockData.inventoryWarehousing.warehouses.find(wh => wh.id === warehouseId);
+            if (warehouse) {
+                openDrillDownDialog('تفاصيل المخزن', warehouse);
+            }
+        }
+
+
+        // --- Procurement Dashboard (NEW & UPDATED) ---
+        var currentFilteredProcurementOps = mockData.procurement.operations;
+
+        function renderProcurementDashboardContent() {
+            const container = document.getElementById('procurement-dashboard');
+            const operations = currentFilteredProcurementOps;
+
+            // KPIs Calculation
+            const totalOperations = operations.length;
+            const suppliedOperations = operations.filter(op => op.supplyStatus === 'تم').length;
+            const completedOperations = operations.filter(op => op.contractStatus === 'مفعل' && op.paymentStatus === 'تم').length;
+            const completionPercentage = totalOperations > 0 ? ((completedOperations / totalOperations) * 100).toFixed(1) : 0;
+            const awardedOps = operations.filter(op => op.awardedValue > 0);
+            const totalEstimated = awardedOps.reduce((sum, op) => sum + op.estimatedValue, 0);
+            const totalAwarded = awardedOps.reduce((sum, op) => sum + op.awardedValue, 0);
+            const avgDifference = awardedOps.length > 0 ? (totalEstimated - totalAwarded) / awardedOps.length : 0;
+            const activeSuppliers = new Set(operations.map(op => op.supplierName).filter(name => name)).size;
+            const stalledOperations = operations.filter(op => op.objections !== '').length;
+
+            container.innerHTML = `
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">إدارة التعاقدات والمشتريات</h2>
+
+                 <!-- Filters Section -->
+                <div class="bg-white shadow-md p-6 mb-6 rounded-lg flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4 md:space-x-reverse">
+                    <h3 class="text-lg font-semibold text-gray-800">الفلاتر:</h3>
+                    <select id="proc-filter-type" class="filter-dropdown">
+                        <option value="">كل أنواع العمليات</option>
+                    </select>
+                    <select id="proc-filter-entity" class="filter-dropdown">
+                        <option value="">كل الجهات الطالبة</option>
+                    </select>
+                    <select id="proc-filter-supply-status" class="filter-dropdown">
+                        <option value="">كل حالات التوريد</option>
+                    </select>
+                     <input type="date" id="proc-filter-date" class="filter-dropdown">
+                    <button id="apply-proc-filters-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        تطبيق الفلاتر
+                    </button>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    ${renderCard('إجمالي العمليات', `<div class="text-2xl font-bold">${totalOperations}</div>`, '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />', 'text-blue-500')}
+                    ${renderCard('العمليات الموردة', `<div class="text-2xl font-bold">${suppliedOperations}</div>`, '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />', 'text-green-500')}
+                    ${renderCard('نسبة الإنجاز المالي والعقدي', `<div class="text-2xl font-bold">${completionPercentage}%</div>`, '<path d="M22 12h-4l-3 9L9 3l-3 9H2" />', 'text-purple-500')}
+                    ${renderCard('متوسط التوفير', `<div class="text-2xl font-bold">${formatCurrency(avgDifference)}</div>`, '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />', 'text-teal-500')}
+                    ${renderCard('الموردون الفاعلون', `<div class="text-2xl font-bold">${activeSuppliers}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />', 'text-indigo-500')}
+                    ${renderCard('العمليات المعطلة', `<div class="text-2xl font-bold">${stalledOperations}</div>`, '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />', 'text-red-500')}
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">العمليات حسب النوع (العدد والقيمة)</h3></div>
+                        <div class="p-6 pt-0"><canvas id="procurement-type-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع العمليات حسب حالة التوريد</h3></div>
+                        <div class="p-6 pt-0"><canvas id="procurement-status-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Detailed Table Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">تفاصيل العمليات</h3></div>
+                    <div class="p-6 pt-0">
+                        <div id="procurement-detailed-table-container">
+                            <!-- Table will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-row items-center justify-between p-6">
+                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <button id="procurement-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            توليد رؤى الذكاء الاصطناعي
+                        </button>
+                    </div>
+                    <div id="procurement-ai-insights-content" class="p-6 pt-0">
+                        <p class="text-gray-500">انقر على "توليد رؤى الذكاء الاصطناعي" للحصول على تحليل وتوصيات.</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('procurement-ai-insights-btn').onclick = async () => {
+                const btn = document.getElementById('procurement-ai-insights-btn');
+                btn.textContent = 'جاري التحليل...';
+                btn.disabled = true;
+                const insights = await getAIInsights('procurement');
+                document.getElementById('procurement-ai-insights-content').innerHTML = `<div class="bg-blue-50 border-r-4 border-blue-500 text-blue-800 p-4 rounded-md">${insights}</div>`;
+                btn.textContent = 'توليد رؤى الذكاء الاصطناعي';
+                btn.disabled = false;
+            };
+            populateProcurementFilters();
+            document.getElementById('apply-proc-filters-btn').addEventListener('click', applyProcurementFilters);
+        }
+
+        function populateProcurementFilters() {
+            const operations = mockData.procurement.operations;
+            const types = [...new Set(operations.map(op => op.operationType))];
+            const entities = [...new Set(operations.map(op => op.requestingEntity))];
+            const statuses = [...new Set(operations.map(op => op.supplyStatus))];
+
+            const filterType = document.getElementById('proc-filter-type');
+            filterType.innerHTML = '<option value="">كل أنواع العمليات</option>';
+            types.forEach(t => filterType.innerHTML += `<option value="${t}">${t}</option>`);
+
+            const filterEntity = document.getElementById('proc-filter-entity');
+            filterEntity.innerHTML = '<option value="">كل الجهات الطالبة</option>';
+            entities.forEach(e => filterEntity.innerHTML += `<option value="${e}">${e}</option>`);
+
+            const filterStatus = document.getElementById('proc-filter-supply-status');
+            filterStatus.innerHTML = '<option value="">كل حالات التوريد</option>';
+            statuses.forEach(s => filterStatus.innerHTML += `<option value="${s}">${s}</option>`);
+        }
+
+        function applyProcurementFilters() {
+            const type = document.getElementById('proc-filter-type').value;
+            const entity = document.getElementById('proc-filter-entity').value;
+            const status = document.getElementById('proc-filter-supply-status').value;
+            const date = document.getElementById('proc-filter-date').value;
+
+            currentFilteredProcurementOps = mockData.procurement.operations.filter(op => {
+                return (!type || op.operationType === type) &&
+                       (!entity || op.requestingEntity === entity) &&
+                       (!status || op.supplyStatus === status) &&
+                       (!date || op.awardDate >= date || op.technicalOpeningDate >= date);
+            });
+            renderProcurementCharts();
+        }
+
+        function getProcurementRowColorClass(operation) {
+            if (operation.objections || operation.contractStatus === 'لم يتم') return 'status-red';
+            if (operation.supplyStatus === 'تم' && operation.paymentStatus === 'تم') return 'status-green';
+            if (operation.supplyStatus === 'قيد التنفيذ' || operation.paymentStatus === 'معلق') return 'status-yellow';
+            return '';
+        }
+
+        function renderProcurementDetailedTable() {
+            const tableContainer = document.getElementById('procurement-detailed-table-container');
+            const headers = ['رقم العملية', 'النوع', 'الجهة الطالبة', 'قيمة الترسية', 'حالة التوريد', 'حالة العقد', 'حالة الدفع', 'اعتراضات', 'تفاصيل'];
+            const rows = currentFilteredProcurementOps.map(op => ({
+                id: op.id,
+                rawData: op,
+                cells: [
+                    op.operationNumber,
+                    op.operationType,
+                    op.requestingEntity,
+                    formatCurrency(op.awardedValue),
+                    op.supplyStatus,
+                    op.contractStatus,
+                    op.paymentStatus,
+                    op.objections ? 'نعم' : 'لا',
+                    `<button class="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded" onclick="handleProcurementDrillDown('${op.id}')">عرض</button>`
+                ]
+            }));
+
+            if (rows.length > 0) {
+                tableContainer.innerHTML = renderTable(headers, rows, getProcurementRowColorClass);
+            } else {
+                tableContainer.innerHTML = '<p class="text-center text-gray-500">لا توجد عمليات مطابقة للفلاتر المحددة.</p>';
+            }
+        }
+        
+        function handleProcurementDrillDown(opId) {
+            const operation = mockData.procurement.operations.find(op => op.id === opId);
+            if (operation) {
+                openDrillDownDialog(`تفاصيل العملية: ${operation.operationNumber}`, operation);
+            }
+        }
+
+        function renderProcurementCharts() {
+            if (chartInstances['procurement-type-chart']) chartInstances['procurement-type-chart'].destroy();
+            if (chartInstances['procurement-status-chart']) chartInstances['procurement-status-chart'].destroy();
+            
+            const operations = currentFilteredProcurementOps;
+            const types = [...new Set(operations.map(op => op.operationType))];
+            const typeCounts = types.map(type => operations.filter(op => op.operationType === type).length);
+            const typeValues = types.map(type => operations.filter(op => op.operationType === type).reduce((sum, op) => sum + op.awardedValue, 0));
+
+            const typeCtx = document.getElementById('procurement-type-chart').getContext('2d');
+            chartInstances['procurement-type-chart'] = new Chart(typeCtx, {
+                type: 'bar',
+                data: {
+                    labels: types,
+                    datasets: [
+                        {
+                            label: 'عدد العمليات',
+                            data: typeCounts,
+                            backgroundColor: '#0088FE',
+                            yAxisID: 'y-count',
+                        },
+                        {
+                            label: 'قيمة العمليات',
+                            data: typeValues,
+                            backgroundColor: '#00C49F',
+                            yAxisID: 'y-value',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        'y-count': { type: 'linear', position: 'left', title: { display: true, text: 'العدد' } },
+                        'y-value': { type: 'linear', position: 'right', title: { display: true, text: 'القيمة' }, grid: { drawOnChartArea: false }, ticks: { callback: value => formatCurrency(value) } }
+                    }
+                }
+            });
+
+            const statuses = [...new Set(operations.map(op => op.supplyStatus))];
+            const statusCounts = statuses.map(status => operations.filter(op => op.supplyStatus === status).length);
+
+            const statusCtx = document.getElementById('procurement-status-chart').getContext('2d');
+            chartInstances['procurement-status-chart'] = new Chart(statusCtx, {
+                type: 'pie',
+                data: {
+                    labels: statuses,
+                    datasets: [{
+                        data: statusCounts,
+                        backgroundColor: ['#00C49F', '#FFBB28', '#FF8042'] // Green, Yellow, Red
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            renderProcurementDetailedTable();
+        }
+
+
+        // --- Fleet & Transport Dashboard ---
+        function renderFleetTransportDashboardContent() {
+            const container = document.getElementById('fleetTransport-dashboard');
+            container.innerHTML = `
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">إدارة النقل الميكانيكي</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    ${renderCard(
+                        'المركبات الجاهزة',
+                        `<div class="text-2xl font-bold">${mockData.fleetTransport.vehicleStatus[0].value}</div><p class="text-xs text-gray-500">من أصل ${mockData.fleetTransport.vehicleStatus.reduce((sum, s) => sum + s.value, 0)} مركبة</p>`,
+                        '<path d="M3 20h18" /><path d="m6 17 3-5 6 5 3-5 2 10" /><path d="M14 10a2 2 0 1 0 0 4 2 2 0 1 0 0-4z" /><path d="M7 10a2 2 0 1 0 0 4 2 2 0 1 0 0-4z" /><path d="M17 18a2 2 0 1 0 0 4 2 2 0 1 0 0-4z" />',
+                        'text-green-500'
+                    )}
+                    ${renderCard(
+                        'عدد الأعطال',
+                        `<div class="text-2xl font-bold">${mockData.fleetTransport.breakdownsVsPreventive.breakdowns}</div><p class="text-xs text-gray-500">صيانة وقائية: ${mockData.fleetTransport.breakdownsVsPreventive.preventive}</p>`,
+                        '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" />',
+                        'text-red-500'
+                    )}
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">حالة المركبات</h3></div>
+                        <div class="p-6 pt-0"><canvas id="fleet-status-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">استهلاك الوقود شهرياً</h3></div>
+                        <div class="p-6 pt-0"><canvas id="fleet-fuel-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">تكلفة تشغيل كل مركبة</h3></div>
+                        <div class="p-6 pt-0">
+                            ${renderTable(
+                                ['المركبة', 'التكلفة الشهرية'],
+                                mockData.fleetTransport.costPerVehicle.map(v => ({ id: v.vehicle, cells: [v.vehicle, formatCurrency(v.cost)] }))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-row items-center justify-between p-6">
+                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <button id="fleet-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            توليد رؤى الذكاء الاصطناعي
+                        </button>
+                    </div>
+                    <div id="fleet-ai-insights-content" class="p-6 pt-0">
+                        <p class="text-gray-500">انقر على "توليد رؤى الذكاء الاصطناعي" للحصول على تحليل وتوصيات.</p>
+                    </div>
+                </div>
+
+                <div class="mb-8 p-4 bg-yellow-50 border-r-4 border-yellow-500 text-yellow-800 rounded-md">
+                    <h3 class="font-semibold mb-2">ربط بين الموديولات:</h3>
+                    <p class="mb-2">تحليل أثر أعطال النقل على الميزانية.</p>
+                    <button onclick="navigateToModule('finance')" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        عرض لوحة المالية
+                    </button>
+                </div>
+            `;
+            // Attach AI insights button event listener
+            document.getElementById('fleet-ai-insights-btn').onclick = async () => {
+                const btn = document.getElementById('fleet-ai-insights-btn');
+                btn.textContent = 'جاري التحليل...';
+                btn.disabled = true;
+                const insights = await getAIInsights('fleetTransport');
+                document.getElementById('fleet-ai-insights-content').innerHTML = `<div class="bg-blue-50 border-r-4 border-blue-500 text-blue-800 p-4 rounded-md">${insights}</div>`;
+                btn.textContent = 'توليد رؤى الذكاء الاصطناعي';
+                btn.disabled = false;
+            };
+        }
+
+        function renderFleetTransportCharts() {
+            if (chartInstances['fleet-status-chart']) chartInstances['fleet-status-chart'].destroy();
+            if (chartInstances['fleet-fuel-chart']) chartInstances['fleet-fuel-chart'].destroy();
+
+            const statusCtx = document.getElementById('fleet-status-chart').getContext('2d');
+            chartInstances['fleet-status-chart'] = new Chart(statusCtx, {
+                type: 'pie',
+                data: {
+                    labels: mockData.fleetTransport.vehicleStatus.map(d => d.name),
+                    datasets: [{
+                        data: mockData.fleetTransport.vehicleStatus.map(d => d.value),
+                        backgroundColor: COLORS.slice(0, mockData.fleetTransport.vehicleStatus.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            const fuelCtx = document.getElementById('fleet-fuel-chart').getContext('2d');
+            chartInstances['fleet-fuel-chart'] = new Chart(fuelCtx, {
+                type: 'bar',
+                data: {
+                    labels: mockData.fleetTransport.fuelConsumption.map(d => d.month),
+                    datasets: [{
+                        label: 'الاستهلاك (لتر)',
+                        data: mockData.fleetTransport.fuelConsumption.map(d => d.consumption),
+                        backgroundColor: '#FFBB28'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + ' لتر';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Human Resources Dashboard (NEW & UPDATED) ---
+        var currentFilteredHRDepts = mockData.humanResources.departments;
+
+        function renderHumanResourcesDashboardContent() {
+            const container = document.getElementById('humanResources-dashboard');
+            const departments = currentFilteredHRDepts;
+
+            // KPIs Calculation
+            const totalEmployees = departments.reduce((sum, d) => sum + d.employeeCount, 0);
+            const totalHires = departments.reduce((sum, d) => sum + d.hires, 0);
+            const totalAbsences = departments.reduce((sum, d) => Object.values(d.absences).reduce((s, c) => s + c, 0), 0);
+            const totalTrainingExecuted = departments.reduce((sum, d) => sum + d.trainingCoursesExecuted, 0);
+            const totalTrainingTarget = departments.reduce((sum, d) => sum + d.trainingPlanTarget, 0);
+            const overallTrainingRate = totalTrainingTarget > 0 ? (totalTrainingExecuted / totalTrainingTarget * 100).toFixed(1) : 0;
+            
+            container.innerHTML = `
+                <h2 class="text-3xl font-bold mb-8 text-gray-800">إدارة الموارد البشرية</h2>
+
+                <!-- Filters Section -->
+                <div class="bg-white shadow-md p-6 mb-6 rounded-lg flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4 md:space-x-reverse">
+                    <h3 class="text-lg font-semibold text-gray-800">الفلاتر:</h3>
+                    <select id="hr-filter-department" class="filter-dropdown">
+                        <option value="">كل الإدارات</option>
+                    </select>
+                    <select id="hr-filter-joblevel" class="filter-dropdown">
+                        <option value="">كل المستويات الوظيفية</option>
+                    </select>
+                    <select id="hr-filter-absencetype" class="filter-dropdown">
+                        <option value="">كل أنواع الغياب</option>
+                    </select>
+                    <button id="apply-hr-filters-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        تطبيق الفلاتر
+                    </button>
+                </div>
+                
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    ${renderCard('إجمالي العاملين', `<div class="text-2xl font-bold">${totalEmployees}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />', 'text-blue-500')}
+                    ${renderCard('التعيينات الجديدة (آخر فترة)', `<div class="text-2xl font-bold">${totalHires}</div>`, '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />', 'text-green-500')}
+                    ${renderCard('إجمالي أيام الغياب', `<div class="text-2xl font-bold">${totalAbsences}</div>`, '<path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />', 'text-orange-500')}
+                    ${renderCard('تنفيذ خطة التدريب', `<div class="text-2xl font-bold">${overallTrainingRate}%</div>`, '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />', 'text-purple-500')}
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع المستويات الوظيفية</h3></div>
+                        <div class="p-6 pt-0"><canvas id="hr-job-level-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl">
+                        <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">توزيع الغيابات حسب النوع</h3></div>
+                        <div class="p-6 pt-0"><canvas id="hr-absence-type-chart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl col-span-1 lg:col-span-2">
+                         <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">مؤشرات الأداء والغياب حسب الإدارة</h3></div>
+                        <div class="p-6 pt-0"><canvas id="hr-department-performance-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Detailed Table Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-col space-y-1.5 p-6"><h3 class="text-lg font-semibold">ملخص أداء الإدارات</h3></div>
+                    <div class="p-6 pt-0">
+                        <div id="hr-detailed-table-container">
+                            <!-- Table will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI Insights Section -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-lg rounded-xl mb-8">
+                    <div class="flex flex-row items-center justify-between p-6">
+                        <h3 class="text-lg font-semibold">تحليلات الذكاء الاصطناعي</h3>
+                        <button id="hr-ai-insights-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            توليد رؤى الذكاء الاصطناعي
+                        </button>
+                    </div>
+                    <div id="hr-ai-insights-content" class="p-6 pt-0">
+                        <p class="text-gray-500">انقر على "توليد رؤى الذكاء الاصطناعي" للحصول على تحليل وتوصيات.</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('hr-ai-insights-btn').onclick = async () => {
+                const btn = document.getElementById('hr-ai-insights-btn');
+                btn.textContent = 'جاري التحليل...';
+                btn.disabled = true;
+                const insights = await getAIInsights('humanResources');
+                document.getElementById('hr-ai-insights-content').innerHTML = `<div class="bg-blue-50 border-r-4 border-blue-500 text-blue-800 p-4 rounded-md">${insights}</div>`;
+                btn.textContent = 'توليد رؤى الذكاء الاصطناعي';
+                btn.disabled = false;
+            };
+            populateHRFilters();
+            document.getElementById('apply-hr-filters-btn').addEventListener('click', applyHRFilters);
+        }
+
+        function populateHRFilters() {
+            const departments = mockData.humanResources.departments;
+            const jobLevels = ['قيادي', 'إشرافي', 'تنفيذي', 'فني', 'مؤقت'];
+            const absenceTypes = ['مرضي', 'اعتيادي', 'بدون إذن', 'مأمورية', 'إجازة وضع'];
+
+            const deptFilter = document.getElementById('hr-filter-department');
+            departments.forEach(d => deptFilter.innerHTML += `<option value="${d.id}">${d.name}</option>`);
+
+            const jobLevelFilter = document.getElementById('hr-filter-joblevel');
+            jobLevels.forEach(l => jobLevelFilter.innerHTML += `<option value="${l}">${l}</option>`);
+
+            const absenceTypeFilter = document.getElementById('hr-filter-absencetype');
+            absenceTypes.forEach(t => absenceTypeFilter.innerHTML += `<option value="${t}">${t}</option>`);
+        }
+
+        function applyHRFilters() {
+            const deptId = document.getElementById('hr-filter-department').value;
+            // Note: Filtering by job level and absence type would require more complex data structures and logic.
+            // For this demo, we will filter by department only.
+            if (deptId) {
+                currentFilteredHRDepts = mockData.humanResources.departments.filter(d => d.id === deptId);
+            } else {
+                currentFilteredHRDepts = mockData.humanResources.departments;
+            }
+            renderHumanResourcesCharts();
+        }
+        
+        function getTrainingRowColorClass(dept) {
+            const rate = dept.trainingPlanTarget > 0 ? (dept.trainingCoursesExecuted / dept.trainingPlanTarget) : 0;
+            if (rate < 0.5) return 'status-red';
+            if (rate >= 0.5 && rate <= 0.75) return 'status-yellow';
+            if (rate > 0.75) return 'status-green';
+            return '';
+        }
+
+        function renderHRDetailedTable() {
+            const tableContainer = document.getElementById('hr-detailed-table-container');
+            const headers = ['الإدارة', 'عدد العاملين', 'التعيينات', 'الاستقالات', 'إجمالي الغياب', 'تنفيذ التدريب (%)', 'ملاحظات', 'تفاصيل'];
+            const rows = currentFilteredHRDepts.map(d => {
+                const totalAbsences = Object.values(d.absences).reduce((s, c) => s + c, 0);
+                const trainingRate = d.trainingPlanTarget > 0 ? ((d.trainingCoursesExecuted / d.trainingPlanTarget) * 100).toFixed(1) : 0;
+                return {
+                    id: d.id,
+                    rawData: d,
+                    cells: [
+                        d.name,
+                        d.employeeCount,
+                        d.hires,
+                        d.resignations,
+                        totalAbsences,
+                        `${trainingRate}%`,
+                        d.notes || 'لا يوجد',
+                        `<button class="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded" onclick="handleHRDrillDown('${d.id}')">عرض</button>`
+                    ]
+                };
+            });
+            tableContainer.innerHTML = renderTable(headers, rows, getTrainingRowColorClass);
+        }
+
+        function handleHRDrillDown(deptId) {
+            const department = mockData.humanResources.departments.find(d => d.id === deptId);
+            if(department) {
+                openDrillDownDialog(`تفاصيل: ${department.name}`, department);
+            }
+        }
+
+        function renderHumanResourcesCharts() {
+            if (chartInstances['hr-job-level-chart']) chartInstances['hr-job-level-chart'].destroy();
+            if (chartInstances['hr-absence-type-chart']) chartInstances['hr-absence-type-chart'].destroy();
+            if (chartInstances['hr-department-performance-chart']) chartInstances['hr-department-performance-chart'].destroy();
+            
+            const departments = currentFilteredHRDepts;
+            
+            // Pie Chart: Job Level Distribution
+            const jobLevels = { 'قيادي': 0, 'إشرافي': 0, 'تنفيذي': 0, 'فني': 0, 'مؤقت': 0 };
+            departments.forEach(d => {
+                for (const level in d.jobLevels) {
+                    jobLevels[level] += d.jobLevels[level];
+                }
+            });
+            const jobLevelCtx = document.getElementById('hr-job-level-chart').getContext('2d');
+            chartInstances['hr-job-level-chart'] = new Chart(jobLevelCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(jobLevels),
+                    datasets: [{
+                        data: Object.values(jobLevels),
+                        backgroundColor: COLORS,
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Pie Chart: Absence Type Distribution
+            const absenceTypes = { 'مرضي': 0, 'اعتيادي': 0, 'بدون إذن': 0, 'مأمورية': 0, 'إجازة وضع': 0 };
+            departments.forEach(d => {
+                for (const type in d.absences) {
+                    absenceTypes[type] += d.absences[type];
+                }
+            });
+            const absenceCtx = document.getElementById('hr-absence-type-chart').getContext('2d');
+            chartInstances['hr-absence-type-chart'] = new Chart(absenceCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(absenceTypes),
+                    datasets: [{
+                        data: Object.values(absenceTypes),
+                        backgroundColor: COLORS.slice().reverse(),
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Bar Chart: Department Performance
+            const deptPerformanceCtx = document.getElementById('hr-department-performance-chart').getContext('2d');
+            chartInstances['hr-department-performance-chart'] = new Chart(deptPerformanceCtx, {
+                type: 'bar',
+                data: {
+                    labels: departments.map(d => d.name),
+                    datasets: [
+                        {
+                            label: 'إجمالي الغياب (أيام)',
+                            data: departments.map(d => Object.values(d.absences).reduce((s, c) => s + c, 0)),
+                            backgroundColor: '#FF8042',
+                        },
+                        {
+                            label: 'نسبة إنجاز المهام (%)',
+                            data: departments.map(d => d.taskCompletionRate),
+                            backgroundColor: '#00C49F',
+                        },
+                         {
+                            label: 'نسبة التأخير (%)',
+                            data: departments.map(d => d.delayPercentage),
+                            backgroundColor: '#FFBB28',
+                        }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            
+            renderHRDetailedTable();
+        }
+
+        // Function to render all dashboard HTML content once on load
+        function renderAllDashboardsContent() {
+            renderFinanceDashboardContent(); // This now renders the government finance dashboard
+            renderStrategyProjectsDashboardContent();
+            renderInventoryWarehousingDashboardContent();
+            renderProcurementDashboardContent();
+            renderFleetTransportDashboardContent();
+            renderHumanResourcesDashboardContent();
+        }
+
+        // Navigation function
+        function navigateToModule(moduleName) {
+            // Hide all dashboards
+            document.querySelectorAll('main > div').forEach(div => {
+                div.classList.add('hidden');
+            });
+            // Show the selected dashboard
+            document.getElementById(`${moduleName}-dashboard`).classList.remove('hidden');
+            activeModule = moduleName;
+
+            // Update active button styling
+            document.querySelectorAll('aside button').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+                btn.classList.add('hover:bg-gray-700', 'text-gray-300');
+            });
+            document.getElementById(`nav-${moduleName}`).classList.add('bg-blue-600', 'text-white', 'shadow-md');
+            document.getElementById(`nav-${moduleName}`).classList.remove('hover:bg-gray-700', 'text-gray-300');
+
+            // Re-render charts for the active module to ensure responsiveness
+            switch (activeModule) {
+                case 'finance': renderFinanceCharts(); break; // This will now render government finance charts
+                case 'strategyProjects': renderStrategyProjectsCharts(); break;
+                case 'inventoryWarehousing': renderInventoryWarehousingCharts(); break;
+                case 'procurement': renderProcurementCharts(); break;
+                case 'fleetTransport': renderFleetTransportCharts(); break;
+                case 'humanResources': renderHumanResourcesCharts(); break;
+            }
+        }
+
+        // Handle Export Reports
+        function handleExportReports(format) {
+            if (format === 'pdf') {
+                alert('جاري تصدير التقرير الحالي إلى PDF... (قد يستغرق بعض الوقت)');
+                console.log('Simulating PDF export...');
+                const input = document.getElementById('main-dashboard-content');
+                html2canvas(input, { scale: 2 }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgWidth = 210; // A4 width in mm
+                    const pageHeight = 297; // A4 height in mm
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    pdf.save(`${activeModule}-dashboard-report.pdf`);
+                    alert('تم تصدير التقرير بنجاح إلى PDF.');
+                }).catch(error => {
+                    console.error("Error generating PDF:", error);
+                    alert('حدث خطأ أثناء تصدير التقرير إلى PDF.');
+                });
+            } else if (format === 'excel') {
+                alert('جاري تصدير البيانات إلى Excel (CSV)...');
+                console.log('Simulating Excel export...');
+                let dataToExport = [];
+                let filename = `${activeModule}_data.csv`;
+
+                // Select data based on active module for CSV export
+                switch(activeModule) {
+                    case 'finance':
+                        // For finance, export detailed transactions
+                        dataToExport = currentFilteredTransactionsFinance.map(t => {
+                            const chapterName = mockData.finance.chapters.find(c => c.id === t.chapterId)?.name || t.chapterId;
+                            return {
+                                'الباب': chapterName,
+                                'الشهر': t.month, // Removed 'الجهة'
+                                'الربع المالي': t.quarter,
+                                'نوع المشروع': t.projectType,
+                                'المبلغ': t.amount,
+                                'الوصف': t.description
+                            };
+                        });
+                        filename = 'finance_transactions.csv';
+                        break;
+                    case 'strategyProjects':
+                        dataToExport = currentFilteredProjectsStrategy.map(p => {
+                            const financialGap = p.budgetApproved - p.actualSpent;
+                            return {
+                                'اسم المشروع': p.name,
+                                'الجهة المنفذة': p.entity,
+                                'نوع المشروع': p.type,
+                                'تاريخ البدء': p.startDate,
+                                'تاريخ النهاية': p.endDate,
+                                'المرحلة الحالية': p.currentStage,
+                                'نسبة الإنجاز %': p.completionPercentage,
+                                'الموازنة المعتمدة': p.budgetApproved,
+                                'المنصرف الفعلي': p.actualSpent,
+                                'الفجوة المالية': financialGap,
+                                'عدد المعوقات': p.obstaclesCount
+                            };
+                        });
+                        filename = 'strategy_projects_data.csv';
+                        break;
+                    case 'inventoryWarehousing':
+                        dataToExport = currentFilteredWarehouses.map(wh => {
+                            return {
+                                'اسم المخزن': wh.name,
+                                'نوع المخزن': wh.type,
+                                'عدد الأصناف': wh.itemCount,
+                                'الرصيد المالي': wh.currentBalance,
+                                'الأصناف المنتهية': wh.expiredItemsCount,
+                                'أوامر الصرف المفتوحة': wh.openDispatchOrders,
+                                'أوامر الاستلام المعلقة': wh.pendingReceiptOrders,
+                                'نسبة الدوران': wh.turnoverRate,
+                                'تاريخ آخر جرد فعلي': wh.lastInventoryDate,
+                                'ملاحظات المتابعة': wh.notes,
+                                'عدد الأصناف الراكدة': wh.stagnantItemsCount,
+                                'حالة الجرد': wh.isInventoried ? 'جُرد' : 'لم يُجرد'
+                            };
+                        });
+                        filename = 'inventory_warehouses_data.csv';
+                        break;
+                    case 'procurement':
+                        dataToExport = currentFilteredProcurementOps.map(op => ({
+                            'رقم العملية': op.operationNumber,
+                            'نوع العملية': op.operationType,
+                            'الجهة الطالبة': op.requestingEntity,
+                            'القيمة التقديرية': op.estimatedValue,
+                            'قيمة الترسية': op.awardedValue,
+                            'حالة التوريد': op.supplyStatus,
+                            'حالة العقد': op.contractStatus,
+                            'حالة الدفع': op.paymentStatus,
+                            'عدد الموردين': op.participatingSuppliers,
+                            'اعتراضات': op.objections,
+                            'تاريخ الفتح الفني': op.technicalOpeningDate,
+                            'تاريخ الترسية': op.awardDate
+                        }));
+                        filename = 'procurement_operations.csv';
+                        break;
+                    case 'fleetTransport':
+                        dataToExport = mockData.fleetTransport.fuelConsumption;
+                        filename = 'fleet_fuel_consumption.csv';
+                        break;
+                    case 'humanResources':
+                        dataToExport = currentFilteredHRDepts.map(d => {
+                             const trainingRate = d.trainingPlanTarget > 0 ? ((d.trainingCoursesExecuted / d.trainingPlanTarget) * 100).toFixed(1) : 0;
+                             return {
+                                'الإدارة': d.name,
+                                'عدد العاملين': d.employeeCount,
+                                'تعيينات': d.hires,
+                                'استقالات': d.resignations,
+                                'غياب مرضي': d.absences['مرضي'],
+                                'غياب اعتيادي': d.absences['اعتيادي'],
+                                'غياب بدون إذن': d.absences['بدون إذن'],
+                                'مأموريات': d.absences['مأمورية'],
+                                'إجازة وضع': d.absences['إجازة وضع'],
+                                'تنفيذ التدريب (%)': trainingRate,
+                                'نسبة التأخير (%)': d.delayPercentage,
+                                'إنجاز المهام (%)': d.taskCompletionRate,
+                                'ملاحظات': d.notes
+                            };
+                        });
+                        filename = 'human_resources_summary.csv';
+                        break;
+                    default:
+                        alert('لا توجد بيانات قابلة للتصدير لهذا الموديول.');
+                        return;
+                }
+
+                if (dataToExport.length > 0) {
+                    const headers = Object.keys(dataToExport[0]).join(',');
+                    const rows = dataToExport.map(row => Object.values(row).map(val => `"${val}"`).join(',')).join('\n');
+                    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + "\n" + rows;
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", filename);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    alert('تم تصدير البيانات بنجاح إلى Excel (CSV).');
+                } else {
+                    alert('لا توجد بيانات لتصديرها.');
+                }
+            }
+        }
+
+        // Update Alert Message
+        function updateAlertMessage(message) {
+            const alertDiv = document.getElementById('alert-message');
+            if (message) {
+                alertDiv.innerHTML = message; // Use innerHTML for rich text
+                alertDiv.classList.remove('hidden');
+            } else {
+                alertDiv.classList.add('hidden');
+            }
+        }
+
+        // Simulate real-time updates
+        function startRealtimeUpdates() {
+            setInterval(() => {
+                // Simulate data changes for active module (for demo purposes)
+                if (activeModule === 'finance') {
+                    // Simulate changes for finance data
+                    mockData.finance.chapters.forEach(chapter => {
+                        chapter.actualSpent += Math.random() * chapter.originalAllocation * 0.005; // Small random increment
+                        if (chapter.actualSpent > chapter.originalAllocation) {
+                            chapter.actualSpent = chapter.originalAllocation; // Cap at original allocation
+                        }
+                    });
+                    renderFinanceCharts(); // Re-render charts with new data
+                    updateAlertMessage(getAIInsights('finance')); // Update AI insights and alerts
+                } else if (activeModule === 'humanResources') {
+                    mockData.humanResources.departments.forEach(d => {
+                        d.absences['مرضي'] += Math.floor(Math.random() * 2);
+                        d.taskCompletionRate = Math.max(80, Math.min(100, d.taskCompletionRate + (Math.random() * 2 - 1)));
+                    });
+                    renderHumanResourcesCharts();
+                    updateAlertMessage(getAIInsights('humanResources'));
+                } else if (activeModule === 'strategyProjects') {
+                    // Simulate changes for strategy projects data
+                    mockData.strategyProjects.projects.forEach(p => {
+                        p.completionPercentage += Math.random() * 5 - 2.5; // Small random increment
+                        p.completionPercentage = Math.max(0, Math.min(100, p.completionPercentage)); // Keep between 0 and 100
+                        p.actualSpent = p.budgetApproved * (p.completionPercentage / 100); // Update spent based on completion
+                    });
+                    renderStrategyProjectsCharts();
+                    updateAlertMessage(getAIInsights('strategyProjects'));
+                } else if (activeModule === 'inventoryWarehousing') {
+                    // Simulate changes for inventory data
+                    mockData.inventoryWarehousing.warehouses.forEach(wh => {
+                        wh.currentBalance += Math.random() * 10000 - 5000; // Simulate balance change
+                        wh.itemCount += Math.round(Math.random() * 2 - 1); // Simulate item count change
+                        wh.turnoverRate = Math.random() * 0.5 + 0.3; // Simulate turnover rate
+                        wh.stagnantItemsCount = Math.round(Math.random() * 20); // Simulate stagnant items
+                        wh.expiredItemsCount = Math.round(Math.random() * 5); // Simulate expired items
+                    });
+                    renderInventoryWarehousingCharts();
+                    updateAlertMessage(getAIInsights('inventoryWarehousing'));
+                } else if (activeModule === 'procurement') {
+                    mockData.procurement.operations.forEach(op => {
+                        if (Math.random() > 0.9) { // 10% chance to change status
+                           const statuses = ['تم', 'قيد التنفيذ', 'لم يتم'];
+                           op.supplyStatus = statuses[Math.floor(Math.random() * statuses.length)];
+                        }
+                    });
+                    renderProcurementCharts();
+                    updateAlertMessage(getAIInsights('procurement'));
+                }
+                // Add more logic here for other modules if needed
+            }, 10000); // Update every 10 seconds
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            // Render all dashboard HTML content first
+            renderAllDashboardsContent();
+
+            // Attach navigation button event listeners
+            document.getElementById('nav-finance').addEventListener('click', () => navigateToModule('finance'));
+            document.getElementById('nav-strategyProjects').addEventListener('click', () => navigateToModule('strategyProjects'));
+            document.getElementById('nav-inventoryWarehousing').addEventListener('click', () => navigateToModule('inventoryWarehousing'));
+            document.getElementById('nav-procurement').addEventListener('click', () => navigateToModule('procurement'));
+            document.getElementById('nav-fleetTransport').addEventListener('click', () => navigateToModule('fleetTransport'));
+            document.getElementById('nav-humanResources').addEventListener('click', () => navigateToModule('humanResources'));
+
+            // Attach export button event listeners
+            document.getElementById('export-pdf-btn').addEventListener('click', () => handleExportReports('pdf'));
+            document.getElementById('export-excel-btn').addEventListener('click', () => handleExportReports('excel'));
+
+            // Initial render of the default module (Finance - Government)
+            navigateToModule('finance'); // Set initial active state and styling and render charts
+            updateAlertMessage(getAIInsights('finance')); // Initial AI insights for finance
+
+            // Start real-time updates
+            startRealtimeUpdates();
+        });
+    </script>
+</body>
+</html>
